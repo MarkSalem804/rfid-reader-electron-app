@@ -1,0 +1,29 @@
+{
+  "name": "rfid-reader-electron-app",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "electron ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MarkSalem804/rfid-reader-electron-app.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/MarkSalem804/rfid-reader-electron-app/issues"
+  },
+  "homepage": "https://github.com/MarkSalem804/rfid-reader-electron-app#readme",
+  "dependencies": {
+    "@prisma/client": "^6.9.0",
+    "electron": "^36.4.0",
+    "electron-reloader": "^1.2.3",
+    "express": "^5.1.0",
+    "prisma": "^6.9.0"
+  }
+}
