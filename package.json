@@ -1,15 +1,18 @@
 {
   "name": "SDOIC-VTSys",
   "version": "13.0.0",
-  "description": "",
+  "description": "Vehicle Tracking System for SDOIC. Electron app for RFID-based vehicle entry/exit logging.",
+  "author": "Your Name or Organization",
   "main": "main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "electron .",
+    "start": "electron-forge start",
     "build": "electron-builder",
     "build:major": "npm version major && npm run build",
     "build:minor": "npm version minor && npm run build",
-    "build:patch": "npm version patch && npm run build"
+    "build:patch": "npm version patch && npm run build",
+    "package": "electron-forge package",
+    "make": "electron-forge make"
   },
   "build": {
     "appId": "com.depedimuscity.VTSys",
@@ -34,7 +37,6 @@
     "url": "git+https://github.com/MarkSalem804/rfid-reader-electron-app.git"
   },
   "keywords": [],
-  "author": "",
   "license": "ISC",
   "type": "commonjs",
   "bugs": {
@@ -44,11 +46,19 @@
   "dependencies": {
     "@prisma/client": "^6.9.0",
     "bcrypt": "^6.0.0",
+    "electron-squirrel-startup": "^1.0.1",
     "express": "^5.1.0",
     "prisma": "^6.9.0"
   },
   "devDependencies": {
-    "electron-builder": "^26.0.12",
+    "@electron-forge/cli": "^7.8.1",
+    "@electron-forge/maker-deb": "^7.8.1",
+    "@electron-forge/maker-rpm": "^7.8.1",
+    "@electron-forge/maker-squirrel": "^7.8.1",
+    "@electron-forge/maker-zip": "^7.8.1",
+    "@electron-forge/plugin-auto-unpack-natives": "^7.8.1",
+    "@electron-forge/plugin-fuses": "^7.8.1",
+    "@electron/fuses": "^1.8.0",
     "electron": "^36.4.0",
     "electron-reloader": "^1.2.3"
   }
