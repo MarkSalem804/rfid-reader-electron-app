@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentication Flow Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+        }
+        .test-section h3 {
+            color: #2c3e50;
+            margin-top: 0;
+        }
+        .test-step {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+        .test-step strong {
+            color: #2c3e50;
+        }
+        .credentials {
+            background: #e8f5e8;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🔐 Authentication Flow Test Guide</h1>
+        
+        <div class="warning">
+            <strong>⚠️ Important:</strong> This is a test guide for the authentication flow. The system uses hardcoded credentials for testing purposes.
+        </div>
+
+        <div class="test-section">
+            <h3>📋 Test Steps</h3>
+            
+            <div class="test-step">
+                <strong>Step 1:</strong> Click the key icon (🔑) in the main application header
+            </div>
+            
+            <div class="test-step">
+                <strong>Step 2:</strong> You should be redirected to the login page
+            </div>
+            
+            <div class="test-step">
+                <strong>Step 3:</strong> Use the following test credentials:
+                <div class="credentials">
+                    <strong>Username:</strong> admin<br>
+                    <strong>Password:</strong> admin123
+                </div>
+            </div>
+            
+            <div class="test-step">
+                <strong>Step 4:</strong> Click "Login" - you should see a loading state
+            </div>
+            
+            <div class="test-step">
+                <strong>Step 5:</strong> After successful login, you'll be redirected to the admin panel
+            </div>
+            
+            <div class="test-step">
+                <strong>Step 6:</strong> Test the navigation buttons in the admin panel:
+                <ul>
+                    <li>← Back button: Returns to main application</li>
+                    <li>🚪 Logout button: Returns to login page</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>🧪 Error Testing</h3>
+            
+            <div class="test-step">
+                <strong>Invalid Credentials:</strong> Try logging in with wrong username/password - you should see an error message
+            </div>
+            
+            <div class="test-step">
+                <strong>Empty Fields:</strong> Try submitting the form with empty fields - you should see validation errors
+            </div>
+        </div>
+
+        <div class="test-section">
+            <h3>✅ Expected Behavior</h3>
+            <ul>
+                <li>Login page should load with proper styling</li>
+                <li>Form validation should work</li>
+                <li>Loading states should display during login</li>
+                <li>Success message should show before redirect</li>
+                <li>Admin panel should load with all features</li>
+                <li>Navigation between pages should work smoothly</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h3>🔧 Technical Details</h3>
+            <ul>
+                <li><strong>Authentication:</strong> Hardcoded credentials in main.js</li>
+                <li><strong>IPC Communication:</strong> Uses Electron's ipcRenderer/ipcMain</li>
+                <li><strong>Navigation:</strong> Standard window.location.href redirects</li>
+                <li><strong>Error Handling:</strong> Try-catch blocks with user-friendly messages</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html> 

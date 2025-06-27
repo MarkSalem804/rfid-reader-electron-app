@@ -24,11 +24,21 @@ model user {
 model vehicle {
   id          Int        @id @default(autoincrement())
   vehicleName String?
-  epc         String?    @unique
   plateNo     String?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+  createdAt   DateTime?  @default(now())
+  updatedAt   DateTime?  @updatedAt
   timeLogs    timeLogs[]
+  rfidTags    rfidTag[] // Many-to-many relationship with RFID tags
+}
+
+model rfidTag {
+  id        Int       @id @default(autoincrement())
+  epc       String    @unique
+  tagType   String? // e.g., "EasyTrip", "EasySweep", etc.
+  isActive  Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  vehicles  vehicle[] // Many-to-many relationship with vehicles
 }
 
 model timeLogs {
@@ -36,5 +46,5 @@ model timeLogs {
   vehicle   vehicle?  @relation(fields: [vehicleId], references: [id])
   vehicleId Int?
   timeOut   DateTime?
-  timeIn    DateTime  @default(now())
+  timeIn    DateTime? @default(now())
 }

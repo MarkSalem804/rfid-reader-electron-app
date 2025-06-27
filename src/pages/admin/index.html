@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - SDOIC Trip Tracking System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../assets/fontawesome-free-6.0.0-web/css/all.min.css">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="admin-container">
+        <!-- Sidebar -->
+        <div class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <img src="../../assets/deped_logo.png" alt="DepEd Logo" class="sidebar-logo">
+                <h3>Admin Panel</h3>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <ul>
+                    <li>
+                        <a href="#" class="nav-link active" data-page="dashboard" data-title="Dashboard">
+                            <i class="fas fa-tachometer-alt"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="nav-link" data-page="reports" data-title="Reports">
+                            <i class="fas fa-chart-bar"></i>
+                            <span>Reports</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="nav-link" data-page="vehicles" data-title="Vehicles">
+                            <i class="fas fa-car"></i>
+                            <span>Vehicles</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="nav-link" data-page="users" data-title="Users">
+                            <i class="fas fa-users"></i>
+                            <span>User Management</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#" class="nav-link" data-page="settings" data-title="Settings">
+                            <i class="fas fa-cog"></i>
+                            <span>Settings</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Top Header -->
+            <header class="top-header">
+                <div class="header-left">
+                    <button class="sidebar-toggle" id="sidebar-toggle" title="Collapse Sidebar">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <h1>SDOIC Vehile Tracking System - Admin Panel</h1>
+                </div>
+                <div class="header-right">
+                    <button class="nav-icon" id="logout-btn" title="Logout">
+                        <i class="fas fa-power-off"></i>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Page Content -->
+            <div class="page-content" id="page-content">
+                <!-- Dashboard Page -->
+                <div class="page active" id="dashboard-page">
+                    <div class="page-header">
+                        <h2><i class="fas fa-tachometer-alt"></i> Dashboard Overview</h2>
+                        <p>Real-time monitoring and statistics</p>
+                    </div>
+                    
+                    <div class="dashboard-stats">
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-car"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h3 id="total-vehicles">0</h3>
+                                <p>Total Vehicles</p>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-parking"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h3 id="parked-vehicles">0</h3>
+                                <p>Currently Parked</p>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-sign-in-alt"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h3 id="today-entries">0</h3>
+                                <p>Today's Entries</p>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card">
+                            <div class="stat-icon">
+                                <i class="fas fa-sign-out-alt"></i>
+                            </div>
+                            <div class="stat-content">
+                                <h3 id="today-exits">0</h3>
+                                <p>Today's Exits</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="dashboard-content">
+                        <div class="dashboard-section">
+                            <h3>Recent Activity</h3>
+                            <div class="activity-list" id="recent-activity">
+                                <!-- Activity items will be loaded here -->
+                            </div>
+                        </div>
+                        
+                        <div class="dashboard-section">
+                            <h3>Quick Actions</h3>
+                            <div class="quick-actions">
+                                <button class="action-btn" onclick="showPage('reports')">
+                                    <i class="fas fa-chart-bar"></i>
+                                    Generate Report
+                                </button>
+                                <button class="action-btn" onclick="showPage('vehicles')">
+                                    <i class="fas fa-car"></i>
+                                    Manage Vehicles
+                                </button>
+                                <button class="action-btn" onclick="showPage('users')">
+                                    <i class="fas fa-users"></i>
+                                    Manage Users
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reports Page -->
+                <div class="page" id="reports-page">
+                    <div class="page-header">
+                        <h2><i class="fas fa-chart-bar"></i> Report Generation</h2>
+                        <p>Generate and export detailed reports</p>
+                    </div>
+                    
+                    <div class="reports-container">
+                        <div class="report-controls">
+                            <div class="report-filters">
+                                <div class="filter-group">
+                                    <label for="report-type">Report Type:</label>
+                                    <select id="report-type">
+                                        <option value="comprehensive">Comprehensive Report</option>
+                                        <option value="daily">Daily Activity Report</option>
+                                        <option value="vehicle">Vehicle Report</option>
+                                        <option value="parking">Parking Status Report</option>
+                                    </select>
+                                </div>
+                                
+                                <div class="filter-group">
+                                    <label for="start-date">Start Date:</label>
+                                    <input type="date" id="start-date" value="">
+                                </div>
+                                
+                                <div class="filter-group">
+                                    <label for="end-date">End Date:</label>
+                                    <input type="date" id="end-date" value="">
+                                </div>
+                                
+                                <button class="generate-btn" onclick="generateReport()">
+                                    <i class="fas fa-sync-alt"></i> Generate Report
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="report-actions">
+                            <button class="export-btn" onclick="exportReport('json')" disabled id="export-json-btn">
+                                <i class="fas fa-download"></i> Export JSON
+                            </button>
+                            <button class="export-btn" onclick="exportReport('csv')" disabled id="export-csv-btn">
+                                <i class="fas fa-file-csv"></i> Export CSV
+                            </button>
+                        </div>
+                        
+                        <div id="report-content" class="report-content">
+                            <div class="report-placeholder">
+                                <i class="fas fa-chart-line"></i>
+                                <p>Select report type and date range, then click "Generate Report" to view data</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Vehicles Page -->
+                <div class="page" id="vehicles-page">
+                    <div class="page-header">
+                        <h2><i class="fas fa-car"></i> Vehicle Management</h2>
+                        <p>Manage registered vehicles and their information</p>
+                    </div>
+                    
+                    <div class="vehicles-container">
+                        <div class="vehicles-header">
+                            <!-- Remove this block from Vehicles Page -->
+                            <!--
+                            <button class="add-vehicle-btn">
+                                <i class="fas fa-plus"></i> Add New Vehicle
+                            </button>
+                            -->
+                        </div>
+                        
+                        <div class="vehicles-table-container">
+                            <table class="vehicles-table" id="vehicles-table">
+                                <thead>
+                                    <tr>
+                                        <th>Plate Number</th>
+                                        <th>Vehicle Name</th>
+                                        <th>EPC Tag</th>
+                                        <th>Status</th>
+                                        <th>Last Activity</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="vehicles-tbody">
+                                    <!-- Vehicle data will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Users Page -->
+                <div class="page" id="users-page">
+                    <div class="page-header">
+                        <h2><i class="fas fa-users"></i> User Management</h2>
+                        <p>Manage system users and permissions</p>
+                    </div>
+                    
+                    <div class="users-container">
+                        <div class="users-header">
+                        </div>
+                        <div class="users-table-container">
+                            <table class="users-table" id="users-table">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Role</th>
+                                        <th>Status</th>
+                                        <th>Last Login</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="users-tbody">
+                                    <!-- User data will be loaded here -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings Page -->
+                <div class="page" id="settings-page">
+                    <div class="page-header">
+                        <h2><i class="fas fa-cog"></i> System Settings</h2>
+                        <p>Configure system preferences and options</p>
+                    </div>
+                    
+                    <div class="settings-container">
+                        <div class="settings-section">
+                            <h3>General Settings</h3>
+                            <div class="setting-item">
+                                <label>System Name:</label>
+                                <input type="text" value="SDOIC Trip Tracking System" disabled>
+                            </div>
+                            <div class="setting-item">
+                                <label>Auto-refresh Interval (seconds):</label>
+                                <input type="number" value="30" min="5" max="300">
+                            </div>
+                        </div>
+                        
+                        <div class="settings-section">
+                            <h3>RFID Settings</h3>
+                            <div class="setting-item">
+                                <label>Reader IP Address:</label>
+                                <input type="text" value="10.10.100.254">
+                            </div>
+                            <div class="setting-item">
+                                <label>Reader Port:</label>
+                                <input type="number" value="49152">
+                            </div>
+                        </div>
+                        
+                        <div class="settings-section">
+                            <h3>Database Settings</h3>
+                            <div class="setting-item">
+                                <label>Database URL:</label>
+                                <input type="text" value="mysql://localhost:3306/rfid_tracker" disabled>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add User Modal -->
+    <!-- <div id="add-user-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="close" id="close-add-user-modal">&times;</span>
+            <div class="modal-header">
+                <h2>Add New User</h2>
+            </div>
+            <div class="modal-body">
+                <div id="add-user-success" class="success-message" style="display:none;"></div>
+                <form id="add-user-form">
+                    <div class="form-group">
+                        <label for="new-email">Email</label>
+                        <input type="email" id="new-email" name="new-email" required autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label for="new-password">Password</label>
+                        <input type="password" id="new-password" name="new-password" required autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label for="new-role">Role</label>
+                        <select id="new-role" name="new-role" required>
+                            <option value="admin">Admin</option>
+                            <option value="user">User</option>
+                        </select>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="login-btn">Register User</button>
+                        <button type="button" class="cancel-btn" id="cancel-add-user-btn">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div> -->
+    <!-- End Add User Modal -->
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast" style="display:none;"></div>
+
+    <script src="script.js"></script>
+</body>
+</html> 

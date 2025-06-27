@@ -27,6 +27,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,
+    icon: path.join(__dirname, "src/assets/deped_logo_icon.ico"),
     webPreferences: {
       preload: path.join(__dirname, "src/renderer.js"),
       nodeIntegration: true,
@@ -38,6 +39,8 @@ function createWindow() {
   mainWindow.webContents.session.clearCache();
 
   mainWindow.loadFile("index.html");
+
+  mainWindow.webContents.openDevTools();
 }
 
 app.whenReady().then(() => {
@@ -64,7 +67,7 @@ app.on("activate", () => {
 });
 
 const tagTimestamps = new Map(); // key: EPC, value: timestamp
-const MIN_INTERVAL_MS = 120 * 1000; // 2 minutes
+const MIN_INTERVAL_MS = 30 * 1000; // 30 seconds
 
 // TCP CLIENT FUNCTION
 function connectToRFIDReader() {
@@ -76,38 +79,53 @@ function connectToRFIDReader() {
 
   client.on("data", async (data) => {
     const hexData = data.toString("hex");
-    const match = hexData.match(/e2[\da-f]{22}/i); // looks for valid EPC
+    console.log(`[RAW TAG] ${hexData}`); // Log the raw tag data
+
+    // Updated regex to handle multiple tag patterns (e2, ee, etc.)
+    let match = hexData.match(/(e[2-9][\da-f]{22})/i); // looks for valid EPC patterns starting with e2-e9
+    let tagId;
 
     if (match) {
-      const tagId = match[0].toLowerCase(); // <- EPC tag
+      tagId = match[0].toLowerCase();
+    } else {
+      // Fallback: try to find any 24-character hex pattern that might be an EPC
+      match = hexData.match(/([e-f][\da-f][\da-f]{22})/i);
+      if (match) {
+        tagId = match[0].toLowerCase();
+      } else {
+        tagId = hexData;
+      }
+    }
+
+    if (tagId) {
       const timestamp = new Date().toISOString();
 
-      console.log(`[${timestamp}] Tag ID: ${tagId}`);
+      // Always log the tag in the UI
       mainWindow.webContents.send(
         "rfid-data",
         `${timestamp} - Tag ID: ${tagId}`
       );
 
       const now = Date.now();
-
       if (tagTimestamps.has(tagId)) {
         const lastTime = tagTimestamps.get(tagId);
         if (now - lastTime < MIN_INTERVAL_MS) {
-          console.log(
-            `[⏱] Skipped duplicate scan for ${tagId} within 1 minute`
-          );
+          console.log(`[⏱] Skipped duplicate scan for ${tagId} within 30 secs`);
           return; // 🚫 Skip processing this tag
         }
       }
-
-      // ✅ Update timestamp and proceed
       tagTimestamps.set(tagId, now);
 
-      console.log(`[${timestamp}] Tag ID: ${tagId}`);
-      mainWindow.webContents.send(
-        "rfid-data",
-        `${timestamp} - Tag ID: ${tagId}`
-      );
+      // Check if tag is registered
+      const isRegistered = await vehicleService.isTagRegistered(tagId);
+      if (!isRegistered) {
+        // Just log as unregistered, do not process
+        mainWindow.webContents.send(
+          "rfid-result",
+          `${timestamp} - Unregistered EPC: ${tagId}`
+        );
+        return;
+      }
 
       try {
         // ✅ Call service logic
@@ -129,7 +147,7 @@ function connectToRFIDReader() {
       }
     } else {
       console.log(
-        `[${new Date().toISOString()}] Ignored packet (no tag): ${hexData}`
+        `[${new Date().toISOString()}] Ignored packet (no tag, no conversion): ${hexData}`
       );
     }
   });
@@ -142,3 +160,27 @@ function connectToRFIDReader() {
     console.error("[🚫] TCP error:", err.message);
   });
 }
+
+// Admin login handler
+ipcMain.handle("admin-login", async (event, { email, password }) => {
+  try {
+    const user = await vehicleService.authenticateUser(email, password);
+    if (user) {
+      return { success: true, message: "Login successful", user };
+    } else {
+      return { success: false, message: "Invalid email or password" };
+    }
+  } catch (error) {
+    console.error("Login error:", error);
+    return { success: false, message: "Login failed: " + error.message };
+  }
+});
+
+ipcMain.handle("register-user", async (event, { email, password, role }) => {
+  try {
+    const result = await vehicleService.registerUser(email, password, role);
+    return result;
+  } catch (error) {
+    return { success: false, message: error.message };
+  }
+});

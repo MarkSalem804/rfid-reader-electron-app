@@ -3,9 +3,13 @@ const vehicleTracker = require("./backend/vehicleTracker-service");
 
 // Store vehicle entries
 const vehicleEntries = new Map();
+let currentPage = 1;
+let rowsPerPage = 10;
+const rowsPerPageOptions = [10, 20, 50];
 
 // Function to update the vehicle table
-async function updateVehicleTable() {
+async function updateVehicleTable(page = 1) {
+  currentPage = page;
   try {
     const timeLogs = await vehicleTracker.getAllTimeLogs();
     const tbody = document.getElementById("vehicle-entries");
@@ -13,7 +17,11 @@ async function updateVehicleTable() {
 
     tbody.innerHTML = ""; // Clear existing entries
 
-    timeLogs.forEach((log) => {
+    const startIndex = (currentPage - 1) * rowsPerPage;
+    const endIndex = startIndex + rowsPerPage;
+    const paginatedLogs = timeLogs.slice(startIndex, endIndex);
+
+    paginatedLogs.forEach((log) => {
       const row = document.createElement("tr");
 
       // Plate Number
@@ -53,9 +61,71 @@ async function updateVehicleTable() {
 
       tbody.appendChild(row);
     });
+
+    updatePaginationControls(timeLogs.length);
   } catch (error) {
     console.error("Error fetching time logs:", error);
   }
+}
+
+function updatePaginationControls(totalLogs) {
+  const paginationContainer = document.getElementById("pagination-controls");
+  if (!paginationContainer) return;
+
+  const totalPages = Math.ceil(totalLogs / rowsPerPage);
+  paginationContainer.innerHTML = ""; // Clear existing controls
+
+  // Rows per page selector
+  const rowsSelectLabel = document.createElement("label");
+  rowsSelectLabel.textContent = "Rows per page: ";
+  rowsSelectLabel.style.color = "white";
+  rowsSelectLabel.style.marginRight = "8px";
+  const rowsSelect = document.createElement("select");
+  rowsPerPageOptions.forEach((opt) => {
+    const option = document.createElement("option");
+    option.value = opt;
+    option.textContent = opt;
+    if (opt === rowsPerPage) option.selected = true;
+    rowsSelect.appendChild(option);
+  });
+  rowsSelect.addEventListener("change", (e) => {
+    rowsPerPage = parseInt(e.target.value, 10);
+    updateVehicleTable(1);
+  });
+  paginationContainer.appendChild(rowsSelectLabel);
+  paginationContainer.appendChild(rowsSelect);
+
+  if (totalPages <= 1) return; // Don't show pagination if only one page
+
+  // Previous button
+  const prevButton = document.createElement("button");
+  prevButton.textContent = "Previous";
+  prevButton.disabled = currentPage === 1;
+  prevButton.addEventListener("click", () =>
+    updateVehicleTable(currentPage - 1)
+  );
+  paginationContainer.appendChild(prevButton);
+
+  // Page numbers
+  for (let i = 1; i <= totalPages; i++) {
+    const pageButton = document.createElement("button");
+    pageButton.textContent = i;
+    pageButton.disabled = i === currentPage;
+    pageButton.addEventListener("click", () => updateVehicleTable(i));
+    if (i === currentPage) {
+      pageButton.classList.add("active");
+    }
+    paginationContainer.appendChild(pageButton);
+  }
+
+  // Next button
+  const nextButton = document.createElement("button");
+  nextButton.textContent = "Next";
+  nextButton.disabled = currentPage === totalPages;
+  nextButton.addEventListener("click", () =>
+    updateVehicleTable(currentPage + 1)
+  );
+  paginationContainer.appendChild(nextButton);
 }
 
 // Show logs view
@@ -127,6 +197,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         <!-- Vehicle entries will be added here dynamically -->
                     </tbody>
                 </table>
+                 <div id="pagination-controls" class="pagination-controls"></div>
             </div>
         </div>
 
@@ -152,6 +223,8 @@ ipcRenderer.on("rfid-data", (event, data) => {
   if (status) {
     status.textContent = "Processing data...";
   }
+
+  // Don't add raw RFID data to logs - only process valid events
 });
 
 // Handle RFID results
@@ -161,22 +234,74 @@ ipcRenderer.on("rfid-result", (event, data) => {
     status.textContent = "waiting for data";
   }
 
-  // Parse the result data
+  // Parse the result data to extract vehicle info
+  // Format from main.js: `${timestamp} - ${result.status.toUpperCase()} for ${result.vehicle?.plateNo || "Unknown Plate"}`
   const match = data.match(
     /(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z) - (\w+) for (.+)/
   );
+
   if (match) {
     const [_, timestamp, action, plateNo] = match;
     const entry = vehicleEntries.get(plateNo) || {};
 
-    if (action === "IN") {
+    if (action === "TIMEIN") {
       entry.timeIn = new Date(timestamp).toLocaleTimeString();
       entry.timeOut = null;
-    } else if (action === "OUT") {
+
+      // Add to recent logs with proper formatting
+      addToRecentLogs(`${plateNo} - Vehicle Entered`, "success");
+    } else if (action === "TIMEOUT") {
       entry.timeOut = new Date(timestamp).toLocaleTimeString();
+
+      // Add to recent logs with proper formatting
+      addToRecentLogs(`${plateNo} - Vehicle Exited`, "info");
     }
 
     vehicleEntries.set(plateNo, entry);
     updateVehicleTable();
   }
 });
+
+// Handle RFID errors
+ipcRenderer.on("rfid-error", (event, data) => {
+  // Only log actual errors, not unregistered tags
+  if (!data.includes("Unregistered EPC")) {
+    addToRecentLogs(data, "error");
+  }
+});
+
+// Function to add entries to recent logs
+function addToRecentLogs(message, type = "info") {
+  const logsList = document.getElementById("logs-list");
+  if (!logsList) return;
+
+  const logEntry = document.createElement("div");
+  logEntry.className = `log-entry log-${type}`;
+
+  const timestamp = new Date().toLocaleTimeString();
+  const icon =
+    type === "success"
+      ? "fa-sign-in-alt"
+      : type === "error"
+      ? "fa-exclamation-circle"
+      : "fa-sign-out-alt";
+
+  logEntry.innerHTML = `
+    <div class="log-icon">
+      <i class="fas ${icon}"></i>
+    </div>
+    <div class="log-content">
+      <div class="log-message">${message}</div>
+      <div class="log-time">${timestamp}</div>
+    </div>
+  `;
+
+  // Add to the top of the list
+  logsList.insertBefore(logEntry, logsList.firstChild);
+
+  // Keep only the last 50 logs
+  const logEntries = logsList.querySelectorAll(".log-entry");
+  if (logEntries.length > 50) {
+    logsList.removeChild(logEntries[logEntries.length - 1]);
+  }
+}

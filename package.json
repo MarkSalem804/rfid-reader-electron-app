@@ -1,12 +1,21 @@
 {
-  "name": "rfid-reader-electron-app",
+  "name": "SDOIC-VEHICLE TRACKING SYSTEM",
   "version": "1.0.0",
   "description": "",
   "main": "main.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "electron ."
+    "start": "electron .",
+    "build": "electron-builder",
+    "build:major": "npm version major && npm run build",
+    "build:minor": "npm version minor && npm run build",
+    "build:patch": "npm version patch && npm run build"
   },
+  "build": {
+     "appId": "com.depedimuscity.VTSys",
+     "productName": "SDOIC - Vehicle Tracking App",
+     "icon": "src/assets/deped_logo_icon.ico"
+   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/MarkSalem804/rfid-reader-electron-app.git"
@@ -21,9 +30,13 @@
   "homepage": "https://github.com/MarkSalem804/rfid-reader-electron-app#readme",
   "dependencies": {
     "@prisma/client": "^6.9.0",
+    "bcrypt": "^6.0.0",
     "electron": "^36.4.0",
     "electron-reloader": "^1.2.3",
     "express": "^5.1.0",
     "prisma": "^6.9.0"
+  },
+  "devDependencies": {
+    "electron-builder": "^26.0.12"
   }
 }
