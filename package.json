@@ -16,11 +16,13 @@
     "productName": "SDOIC - Vehicle Tracking App",
     "icon": "src/assets/deped_logo_icon.ico",
     "files": [
-      "main.js",
+      "dist/**/*",
       "src/**/*",
+      "main.js",
+      "package.json",
       "node_modules/@prisma/client/**/*",
       "node_modules/.prisma/**/*",
-      "package.json"
+      "prisma/schema.prisma"
     ],
     "asarUnpack": [
       "**/@prisma/client/**",
