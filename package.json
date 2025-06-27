@@ -1,6 +1,6 @@
 {
   "name": "SDOIC-VEHICLE TRACKING SYSTEM",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "",
   "main": "main.js",
   "scripts": {
@@ -12,10 +12,10 @@
     "build:patch": "npm version patch && npm run build"
   },
   "build": {
-     "appId": "com.depedimuscity.VTSys",
-     "productName": "SDOIC - Vehicle Tracking App",
-     "icon": "src/assets/deped_logo_icon.ico"
-   },
+    "appId": "com.depedimuscity.VTSys",
+    "productName": "SDOIC - Vehicle Tracking App",
+    "icon": "src/assets/deped_logo_icon.ico"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/MarkSalem804/rfid-reader-electron-app.git"
