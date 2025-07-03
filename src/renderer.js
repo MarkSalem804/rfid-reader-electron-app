@@ -12,6 +12,10 @@ async function updateVehicleTable(page = 1) {
   currentPage = page;
   try {
     const timeLogs = await vehicleTracker.getAllTimeLogs();
+    if (!Array.isArray(timeLogs)) {
+      console.error("timeLogs is not an array:", timeLogs);
+      return;
+    }
     const tbody = document.getElementById("vehicle-entries");
     if (!tbody) return; // Guard against missing element
 
@@ -61,6 +65,27 @@ async function updateVehicleTable(page = 1) {
 
       tbody.appendChild(row);
     });
+
+    // Dynamically add enough blank rows to fill the container
+    setTimeout(() => {
+      const container = document.querySelector(".vehicle-table-container");
+      const table = document.querySelector(".vehicle-table");
+      const row = table.querySelector("tbody tr");
+      const containerHeight = container ? container.offsetHeight : 0;
+      const rowHeight = row ? row.offsetHeight : 90; // fallback to 90px
+      const totalRowsNeeded =
+        rowHeight > 0 ? Math.floor(containerHeight / rowHeight) : rowsPerPage;
+      const blankRowsToAdd = totalRowsNeeded - paginatedLogs.length;
+      for (let i = 0; i < blankRowsToAdd; i++) {
+        const emptyRow = document.createElement("tr");
+        for (let j = 0; j < 4; j++) {
+          const emptyCell = document.createElement("td");
+          emptyCell.innerHTML = "&nbsp;";
+          emptyRow.appendChild(emptyCell);
+        }
+        tbody.appendChild(emptyRow);
+      }
+    }, 0);
 
     updatePaginationControls(timeLogs.length);
   } catch (error) {
@@ -156,6 +181,49 @@ function showVehiclesView() {
       </div>
     </div>
   `;
+}
+
+// Function to show settings page
+function showSettingsView() {
+  const content = document.getElementById("content");
+  if (!content) return;
+
+  content.innerHTML = `
+    <div class="settings-container">
+      <h2>System Settings</h2>
+      <div class="settings-section">
+        <label for="db-url-input">Database URL:</label>
+        <input type="text" id="db-url-input" style="width: 100%;" />
+        <button id="save-db-url-btn" class="btn-primary" style="margin-top: 10px;">Save</button>
+        <div id="db-url-toast" style="display:none; color: green; margin-top: 8px;">Saved!</div>
+      </div>
+    </div>
+  `;
+
+  // Fetch and display current DB URL
+  ipcRenderer.invoke("get-db-url").then((dbUrl) => {
+    document.getElementById("db-url-input").value = dbUrl;
+  });
+
+  // Save handler
+  document
+    .getElementById("save-db-url-btn")
+    .addEventListener("click", async () => {
+      const newUrl = document.getElementById("db-url-input").value.trim();
+      const result = await ipcRenderer.invoke("set-db-url", newUrl);
+      const toast = document.getElementById("db-url-toast");
+      if (result.success) {
+        toast.textContent =
+          "Database URL saved! Please restart the app for changes to take effect.";
+        toast.style.display = "block";
+        setTimeout(() => {
+          toast.style.display = "none";
+        }, 3000);
+      } else {
+        toast.textContent = "Failed to save: " + result.error;
+        toast.style.display = "block";
+      }
+    });
 }
 
 // Initialize the application when DOM is loaded

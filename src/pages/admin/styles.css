@@ -798,14 +798,30 @@ body {
   font-size: 0.9rem;
 }
 
-.vehicles-table th {
+.vehicles-table th,
+.vehicles-table td {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.vehicles-table {
+  border-spacing: 0 !important;
+}
+
+.vehicles-table thead th,
+.vehicles-table thead th {
+  border-right: none !important;
+  border-left: none !important;
+}
+
+/* .vehicles-table th {
   background: #f8f9fa;
   padding: 15px 10px;
   text-align: left;
   font-weight: 600;
   color: #495057;
   border-bottom: 2px solid #dee2e6;
-}
+} */
 
 .vehicles-table td {
   padding: 12px 10px;
@@ -888,6 +904,22 @@ body {
   width: 100%;
   border-collapse: collapse;
   font-size: 0.9rem;
+}
+
+.users-table th,
+.users-table td {
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.users-table {
+  border-spacing: 0 !important;
+}
+
+.users-table thead th,
+.users-table thead th {
+  border-right: none !important;
+  border-left: none !important;
 }
 
 .users-table th {
@@ -1711,4 +1743,125 @@ body {
     grid-template-columns: 1fr;
     gap: 18px;
   }
+}
+
+.table-divider {
+  border: none;
+  border-top: 2px solid #e0e0e0;
+  margin: 16px 0 0 0;
+  width: 100%;
+}
+
+.pagination-container {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  margin-top: 32px;
+}
+
+.pagination-btn {
+  background: #2c3e50;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.pagination-btn.active {
+  background: #3498db;
+  color: #fff;
+  font-weight: bold;
+}
+
+.pagination-btn:disabled {
+  background: #b0b0b0;
+  color: #fff;
+  cursor: not-allowed;
+}
+
+.table-scroll-container {
+  max-height: 540px;
+  min-height: 540px;
+  height: 540px;
+  overflow: hidden;
+}
+
+.vehicles-table,
+.users-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: separate;
+}
+
+.vehicles-table thead,
+.users-table thead {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+}
+
+.vehicles-table tbody,
+.users-table tbody {
+  display: block;
+  height: 470px; /* 6 rows at 90px each, adjust as needed */
+  overflow-y: auto;
+  width: 100%;
+}
+
+.vehicles-table tr,
+.users-table tr {
+  display: table;
+  width: 100%;
+  table-layout: fixed;
+  height: 90px;
+}
+
+.vehicles-table thead th,
+.users-table thead th {
+  background: #2c3e50;
+  color: #fff;
+  font-weight: 600;
+  font-size: 1.05rem;
+  /* padding: 6px 8px; */
+  border-bottom: 2px solid #e0e0e0;
+  border-right: none;
+  text-align: center;
+}
+
+.vehicles-table th,
+.vehicles-table td,
+.users-table th,
+.users-table td {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#db-provider,
+#db-username,
+#db-password,
+#db-host,
+#db-port,
+#db-name {
+  border: 1px solid #b0b0b0;
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 1rem;
+  outline: none;
+  transition: border 0.2s;
+  margin-bottom: 0;
+  box-sizing: border-box;
+}
+#db-provider:focus,
+#db-username:focus,
+#db-password:focus,
+#db-host:focus,
+#db-port:focus,
+#db-name:focus {
+  border: 1.5px solid #3498db;
 }

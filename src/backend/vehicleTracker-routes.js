@@ -185,4 +185,20 @@ router.get("/reports/parking", async (req, res) => {
   }
 });
 
+router.get("/reports/timelogs", async (req, res) => {
+  try {
+    // Optionally accept startDate and endDate as query params
+    const { startDate, endDate } = req.query;
+    const report = await vehicleService.generateReport({
+      reportType: "timelogs",
+      startDate: startDate ? new Date(startDate) : undefined,
+      endDate: endDate ? new Date(endDate) : undefined,
+    });
+    console.log("Sending time logs report to frontend:", report); // For debugging
+    res.json(report);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

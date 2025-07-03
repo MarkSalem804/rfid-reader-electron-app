@@ -325,6 +325,28 @@ async function deactivateRfidTag(epc) {
   });
 }
 
+async function getAllTimeLogs({ startDate, endDate } = {}) {
+  const where = {};
+  if (startDate || endDate) {
+    where.timeOut = {};
+    if (startDate) where.timeOut.gte = new Date(startDate);
+    if (endDate) where.timeOut.lte = new Date(endDate);
+  }
+  const logs = await prisma.timeLogs.findMany({
+    where,
+    include: {
+      vehicle: {
+        select: { vehicleName: true },
+      },
+    },
+  });
+
+  // LOG THE ACTUAL DATA
+  // console.log("Fetched timeLogs from database:", JSON.stringify(logs, null, 2));
+
+  return logs;
+}
+
 module.exports = {
   registerVehicle,
   addRfidTagToVehicle,
@@ -343,4 +365,5 @@ module.exports = {
   isTagRegistered,
   getAllRfidTags,
   deactivateRfidTag,
+  getAllTimeLogs,
 };

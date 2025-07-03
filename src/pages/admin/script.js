@@ -6,6 +6,13 @@ const { getAllUsers } = require("../../backend/Users/auth");
 // Global variables
 let currentPage = "dashboard";
 let currentReport = null;
+let vehicleCurrentPage = 1;
+let userCurrentPage = 1;
+const vehicleRowsPerPage = 6;
+const userRowsPerPage = 6;
+let timelogsCurrentPage = 1;
+const timelogsRowsPerPage = 6;
+let timelogsData = [];
 
 document.addEventListener("DOMContentLoaded", function () {
   initializeAdminPanel();
@@ -72,6 +79,16 @@ document.addEventListener("DOMContentLoaded", function () {
       });
     }
   }
+
+  // Wire up the Edit Database URL button in the settings page
+  document.addEventListener("click", function (e) {
+    if (e.target && e.target.id === "open-db-settings-btn") {
+      showDbUrlEditorModal();
+    }
+    if (e.target && e.target.id === "open-rfid-settings-btn") {
+      showRfidSettingsModal();
+    }
+  });
 });
 
 // Initialize admin panel functionality
@@ -138,7 +155,7 @@ function showPage(pageName) {
       loadDashboardData();
       break;
     case "reports":
-      // Reports page is already loaded
+      loadTimeLogsTable();
       break;
     case "vehicles":
       loadVehiclesData();
@@ -148,6 +165,23 @@ function showPage(pageName) {
       break;
     case "settings":
       // Settings page is static
+      // Fetch and display the current DB URL in the static field
+      ipcRenderer.invoke("get-db-url").then((dbUrl) => {
+        const staticField = document.getElementById("admin-db-url-static");
+        if (staticField) {
+          staticField.value = dbUrl;
+        }
+      });
+
+      // Fetch and display the current RFID settings in the static fields
+      ipcRenderer.invoke("get-rfid-settings").then((result) => {
+        if (result.success) {
+          const ipField = document.getElementById("rfid-ip-static");
+          const portField = document.getElementById("rfid-port-static");
+          if (ipField) ipField.value = result.settings.ip;
+          if (portField) portField.value = result.settings.port;
+        }
+      });
       break;
   }
 }
@@ -231,14 +265,16 @@ async function loadRecentActivity() {
 }
 
 // Load vehicles data
-async function loadVehiclesData() {
+async function loadVehiclesData(page = 1) {
   try {
     const vehicles = await vehicleTracker.getAllVehiclesWithStats();
     const tbody = document.getElementById("vehicles-tbody");
-
     if (!tbody) return;
-
-    tbody.innerHTML = vehicles
+    vehicleCurrentPage = page;
+    const startIndex = (vehicleCurrentPage - 1) * vehicleRowsPerPage;
+    const endIndex = startIndex + vehicleRowsPerPage;
+    const paginatedVehicles = vehicles.slice(startIndex, endIndex);
+    tbody.innerHTML = paginatedVehicles
       .map((vehicle) => {
         const lastActivity =
           vehicle.timeLogs.length > 0 ? vehicle.timeLogs[0].timeIn : null;
@@ -297,23 +333,59 @@ async function loadVehiclesData() {
             `;
       })
       .join("");
+    // Add blank rows if needed
+    const blankVehicleRows = vehicleRowsPerPage - paginatedVehicles.length;
+    for (let i = 0; i < blankVehicleRows; i++) {
+      const emptyRow = document.createElement("tr");
+      for (let j = 0; j < 6; j++) {
+        // 6 columns
+        const emptyCell = document.createElement("td");
+        emptyCell.innerHTML = "&nbsp;";
+        emptyRow.appendChild(emptyCell);
+      }
+      tbody.appendChild(emptyRow);
+    }
+    renderVehiclePagination(vehicles.length);
   } catch (error) {
     console.error("Error loading vehicles data:", error);
   }
 }
 
+function renderVehiclePagination(total) {
+  const container = document.getElementById("vehicle-pagination");
+  if (!container) return;
+  container.className = "pagination-container";
+  const totalPages = Math.ceil(total / vehicleRowsPerPage);
+  let html = "";
+  if (totalPages > 1) {
+    html += `<button class="pagination-btn" ${
+      vehicleCurrentPage === 1 ? "disabled" : ""
+    } onclick="loadVehiclesData(${vehicleCurrentPage - 1})">Previous</button>`;
+    for (let i = 1; i <= totalPages; i++) {
+      html += `<button class="pagination-btn${
+        i === vehicleCurrentPage ? " active" : ""
+      }" onclick="loadVehiclesData(${i})">${i}</button>`;
+    }
+    html += `<button class="pagination-btn" ${
+      vehicleCurrentPage === totalPages ? "disabled" : ""
+    } onclick="loadVehiclesData(${vehicleCurrentPage + 1})">Next</button>`;
+  }
+  container.innerHTML = html;
+}
+
 // Load users data
-async function loadUsersData() {
+async function loadUsersData(page = 1) {
   try {
     const users = await getAllUsers();
     const tbody = document.getElementById("users-tbody");
-
     if (!tbody) return;
-
-    if (users && users.length > 0) {
-      tbody.innerHTML = users
-        .map(
-          (user) => `
+    userCurrentPage = page;
+    const startIndex = (userCurrentPage - 1) * userRowsPerPage;
+    const endIndex = startIndex + userRowsPerPage;
+    const paginatedUsers = users.slice(startIndex, endIndex);
+    tbody.innerHTML = paginatedUsers
+      .map((user) => {
+        return `
             <tr>
                 <td>${user.email}</td> 
                 <td>${user.email}</td>
@@ -335,19 +407,22 @@ async function loadUsersData() {
                     </div>
                 </td>
             </tr>
-        `
-        )
-        .join("");
-    } else {
-      tbody.innerHTML = `
-            <tr>
-                <td colspan="6" style="text-align: center; padding: 40px; color: #666;">
-                    <i class="fas fa-users" style="font-size: 2rem; margin-bottom: 10px; display: block;"></i>
-                    <p>No users found or functionality coming soon...</p>
-                </td>
-            </tr>
         `;
+      })
+      .join("");
+    // Add blank rows if needed
+    const blankUserRows = userRowsPerPage - paginatedUsers.length;
+    for (let i = 0; i < blankUserRows; i++) {
+      const emptyRow = document.createElement("tr");
+      for (let j = 0; j < 6; j++) {
+        // 6 columns
+        const emptyCell = document.createElement("td");
+        emptyCell.innerHTML = "&nbsp;";
+        emptyRow.appendChild(emptyCell);
+      }
+      tbody.appendChild(emptyRow);
     }
+    renderUserPagination(users.length);
   } catch (error) {
     console.error("Error loading users data:", error);
     const tbody = document.getElementById("users-tbody");
@@ -362,6 +437,28 @@ async function loadUsersData() {
         `;
     }
   }
+}
+
+function renderUserPagination(total) {
+  const container = document.getElementById("user-pagination");
+  if (!container) return;
+  container.className = "pagination-container";
+  const totalPages = Math.ceil(total / userRowsPerPage);
+  let html = "";
+  if (totalPages > 1) {
+    html += `<button class="pagination-btn" ${
+      userCurrentPage === 1 ? "disabled" : ""
+    } onclick="loadUsersData(${userCurrentPage - 1})">Previous</button>`;
+    for (let i = 1; i <= totalPages; i++) {
+      html += `<button class="pagination-btn${
+        i === userCurrentPage ? " active" : ""
+      }" onclick="loadUsersData(${i})">${i}</button>`;
+    }
+    html += `<button class="pagination-btn" ${
+      userCurrentPage === totalPages ? "disabled" : ""
+    } onclick="loadUsersData(${userCurrentPage + 1})">Next</button>`;
+  }
+  container.innerHTML = html;
 }
 
 // Set default dates for reports
@@ -429,9 +526,13 @@ function displayReport(report) {
   let html = `
         <div class="report-header">
             <h3>${getReportTitle(report.type)}</h3>
-            <p>Generated on: ${new Date(
+            ${
               report.generatedAt
-            ).toLocaleString()}</p>
+                ? `<p>Generated on: ${new Date(
+                    report.generatedAt
+                  ).toLocaleString()}</p>`
+                : ""
+            }
             ${
               report.dateRange
                 ? `<p>Date Range: ${new Date(
@@ -480,6 +581,9 @@ function displayReport(report) {
       break;
     case "comprehensive":
       html += displayComprehensiveReport(report);
+      break;
+    case "timelogs":
+      html += displayTimeLogsReport(report);
       break;
   }
 
@@ -702,33 +806,116 @@ function displayComprehensiveReport(report) {
     `;
 }
 
+function displayTimeLogsReport(report) {
+  if (
+    !report.details ||
+    !Array.isArray(report.details) ||
+    report.details.length === 0
+  ) {
+    return `<div class="report-section"><p>No time logs found.</p></div>`;
+  }
+  return `
+    <div class="report-section">
+      <h4>Time Logs</h4>
+      <table class="report-table">
+        <thead>
+          <tr>
+            <th>Vehicle Name</th>
+            <th>Time In</th>
+            <th>Time Out</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${report.details
+            .map(
+              (log) => `
+                <tr>
+                  <td>${log.vehicle?.vehicleName || "-"}</td>
+                  <td>${
+                    log.timeIn ? new Date(log.timeIn).toLocaleString() : "-"
+                  }</td>
+                  <td>${
+                    log.timeOut ? new Date(log.timeOut).toLocaleString() : "-"
+                  }</td>
+                </tr>
+              `
+            )
+            .join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
 // Export report function
 async function exportReport(format) {
-  if (!currentReport) {
-    alert("No report to export. Please generate a report first.");
+  if (format !== "excel") return;
+  if (!timelogsData || timelogsData.length === 0) {
+    alert("No report to export. Please load data first.");
     return;
   }
 
-  try {
-    const exportedData = await vehicleTracker.exportReport(
-      currentReport,
-      format
-    );
+  // Get headers from the table
+  const headers = ["ID", "Vehicle ID", "Vehicle Name", "Time In", "Time Out"];
 
-    // Create download link
-    const blob = new Blob([exportedData], {
-      type: format === "csv" ? "text/csv" : "application/json",
+  // Prepare data rows
+  const rows = timelogsData.map((log) => [
+    log.id,
+    log.vehicleId || "",
+    log.vehicle?.vehicleName || "",
+    log.timeIn ? new Date(log.timeIn).toLocaleString() : "",
+    log.timeOut ? new Date(log.timeOut).toLocaleString() : "",
+  ]);
+
+  // Try to use SheetJS (xlsx) if available
+  let isSheetJS = false;
+  try {
+    var XLSX = require("xlsx");
+    isSheetJS = true;
+  } catch (e) {
+    isSheetJS = false;
+  }
+
+  if (isSheetJS) {
+    // SheetJS export
+    const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "TimeLogs");
+    const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+    const blob = new Blob([wbout], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `report-${new Date().toISOString().split("T")[0]}.${format}`;
+    a.download = `timelogs-report-${
+      new Date().toISOString().split("T")[0]
+    }.xlsx`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  } catch (error) {
-    alert(`Error exporting report: ${error.message}`);
+  } else {
+    // Fallback: CSV with .csv extension
+    const csv = [headers.join(",")]
+      .concat(
+        rows.map((r) =>
+          r.map((v) => '"' + String(v).replace(/"/g, '""') + '"').join(",")
+        )
+      )
+      .join("\r\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `timelogs-report-${
+      new Date().toISOString().split("T")[0]
+    }.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    alert("Excel export module not found. Exported as CSV instead.");
   }
 }
 
@@ -739,6 +926,7 @@ function getReportTitle(type) {
     vehicle: "Vehicle Statistics Report",
     parking: "Parking Status Report",
     comprehensive: "Comprehensive Report",
+    timelogs: "Time Logs Report",
   };
   return titles[type] || "Report";
 }
@@ -817,6 +1005,42 @@ function showAddUserModal() {
   `;
 
   document.body.appendChild(addUserModal);
+
+  // Add the toggle button after the password input
+  const passwordInput = addUserModal.querySelector("#new-password");
+  if (passwordInput) {
+    // Create toggle button
+    const toggleBtn = document.createElement("button");
+    toggleBtn.type = "button";
+    toggleBtn.innerHTML = '<i class="fas fa-eye"></i>';
+    toggleBtn.style.position = "absolute";
+    toggleBtn.style.right = "10px";
+    toggleBtn.style.top = "50%";
+    toggleBtn.style.transform = "translateY(-50%)";
+    toggleBtn.style.background = "none";
+    toggleBtn.style.border = "none";
+    toggleBtn.style.cursor = "pointer";
+    toggleBtn.style.padding = "0";
+    toggleBtn.style.outline = "none";
+
+    // Wrap the password input in a relative container
+    const wrapper = document.createElement("div");
+    wrapper.style.position = "relative";
+    passwordInput.parentNode.insertBefore(wrapper, passwordInput);
+    wrapper.appendChild(passwordInput);
+    wrapper.appendChild(toggleBtn);
+
+    // Toggle logic
+    toggleBtn.addEventListener("click", function () {
+      if (passwordInput.type === "password") {
+        passwordInput.type = "text";
+        toggleBtn.innerHTML = '<i class="fas fa-eye-slash"></i>';
+      } else {
+        passwordInput.type = "password";
+        toggleBtn.innerHTML = '<i class="fas fa-eye"></i>';
+      }
+    });
+  }
 
   // Add form submit handler
   const addUserForm = addUserModal.querySelector("#add-user-form");
@@ -1136,3 +1360,519 @@ function showAddVehicleModal() {
 
 window.showAddVehicleModal = showAddVehicleModal;
 window.showAddUserModal = showAddUserModal;
+
+// Add this function to script.js
+function showDbUrlEditorModal() {
+  // Remove any existing modal
+  const existing = document.getElementById("db-url-modal");
+  if (existing) existing.remove();
+
+  // Create modal overlay
+  const modal = document.createElement("div");
+  modal.id = "db-url-modal";
+  modal.style.position = "fixed";
+  modal.style.top = "0";
+  modal.style.left = "0";
+  modal.style.width = "100vw";
+  modal.style.height = "100vh";
+  modal.style.background = "rgba(0,0,0,0.3)";
+  modal.style.display = "flex";
+  modal.style.alignItems = "center";
+  modal.style.justifyContent = "center";
+  modal.style.zIndex = "9998";
+
+  modal.innerHTML = `
+    <div style="background: #fff; padding: 40px 32px; border-radius: 12px; min-width: 500px; min-height: 420px; max-width: 95vw; box-shadow: 0 4px 24px rgba(0,0,0,0.18); position: relative; z-index: 10000;">
+      <button id="close-db-url-modal" style="position: absolute; top: 14px; right: 14px; background: none; border: none; font-size: 1.7rem; cursor: pointer; color: #888;">&times;</button>
+      <h2 style="margin-top:0; margin-bottom: 36px; color: #333; font-weight: 600;">Edit Database URL</h2>
+      
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #555; font-size: 14px;">Provider</label>
+        <input id="db-provider" type="text" style="width: 100%; padding: 12px 16px; border: 2px solid #e1e5e9; border-radius: 8px; font-size: 14px; transition: all 0.2s ease; box-sizing: border-box;" placeholder="e.g., mysql" />
+      </div>
+      
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #555; font-size: 14px;">Username</label>
+        <input id="db-username" type="text" style="width: 100%; padding: 12px 16px; border: 2px solid #e1e5e9; border-radius: 8px; font-size: 14px; transition: all 0.2s ease; box-sizing: border-box;" placeholder="e.g., root" />
+      </div>
+      
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #555; font-size: 14px;">Password</label>
+        <input id="db-password" type="password" style="width: 100%; padding: 12px 16px; border: 2px solid #e1e5e9; border-radius: 8px; font-size: 14px; transition: all 0.2s ease; box-sizing: border-box;" placeholder="Enter password" />
+      </div>
+      
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #555; font-size: 14px;">Host</label>
+        <input id="db-host" type="text" style="width: 100%; padding: 12px 16px; border: 2px solid #e1e5e9; border-radius: 8px; font-size: 14px; transition: all 0.2s ease; box-sizing: border-box;" placeholder="e.g., localhost" />
+      </div>
+      
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #555; font-size: 14px;">Port</label>
+        <input id="db-port" type="text" style="width: 100%; padding: 12px 16px; border: 2px solid #e1e5e9; border-radius: 8px; font-size: 14px; transition: all 0.2s ease; box-sizing: border-box;" placeholder="e.g., 3306" value="3306" />
+      </div>
+      
+      <div style="margin-bottom: 24px;">
+        <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #555; font-size: 14px;">Database Name</label>
+        <input id="db-name" type="text" style="width: 100%; padding: 12px 16px; border: 2px solid #e1e5e9; border-radius: 8px; font-size: 14px; transition: all 0.2s ease; box-sizing: border-box;" placeholder="e.g., rfid_tracker" />
+      </div>
+      
+      <div style="display: flex; justify-content: flex-end; gap: 12px;">
+        <button id="test-db-connection-btn-modal" style="padding: 10px 20px; border: 1px solid #28a745; background: #28a745; color: white; border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.2s ease;">Test Connection</button>
+        <button id="cancel-db-url-btn-modal" style="padding: 10px 20px; border: 1px solid #ddd; background: #f8f9fa; color: #666; border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.2s ease;">Cancel</button>
+        <button id="save-db-url-btn-modal" class="btn-primary" style="padding: 10px 20px; border-radius: 6px; font-size: 14px;">Save Settings</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  // Fetch and display current DB URL, parsing into fields
+  ipcRenderer.invoke("get-db-url").then((dbUrl) => {
+    try {
+      const parsed = new URL(dbUrl);
+      document.getElementById("db-provider").value = parsed.protocol.replace(
+        ":",
+        ""
+      );
+      document.getElementById("db-username").value = decodeURIComponent(
+        parsed.username
+      );
+      document.getElementById("db-password").value = decodeURIComponent(
+        parsed.password
+      );
+      document.getElementById("db-host").value = parsed.hostname;
+      document.getElementById("db-port").value = parsed.port || "3306";
+      document.getElementById("db-name").value = parsed.pathname.replace(
+        /^\//,
+        ""
+      );
+    } catch (e) {
+      // fallback: clear fields
+      document.getElementById("db-provider").value = "mysql";
+      document.getElementById("db-username").value = "";
+      document.getElementById("db-password").value = "";
+      document.getElementById("db-host").value = "localhost";
+      document.getElementById("db-port").value = "3306";
+      document.getElementById("db-name").value = "";
+    }
+  });
+
+  // Add hover and focus effects for text fields
+  const inputs = modal.querySelectorAll("input");
+  inputs.forEach((input) => {
+    input.addEventListener("focus", function () {
+      this.style.borderColor = "#007bff";
+      this.style.boxShadow = "0 0 0 3px rgba(0, 123, 255, 0.1)";
+    });
+
+    input.addEventListener("blur", function () {
+      this.style.borderColor = "#e1e5e9";
+      this.style.boxShadow = "none";
+    });
+
+    input.addEventListener("mouseenter", function () {
+      if (document.activeElement !== this) {
+        this.style.borderColor = "#c1c7cd";
+      }
+    });
+
+    input.addEventListener("mouseleave", function () {
+      if (document.activeElement !== this) {
+        this.style.borderColor = "#e1e5e9";
+      }
+    });
+  });
+
+  // Save handler: combine fields into a URL and save
+  const saveBtn = document.getElementById("save-db-url-btn-modal");
+  saveBtn.addEventListener("click", async () => {
+    const provider = document.getElementById("db-provider").value.trim();
+    const username = encodeURIComponent(
+      document.getElementById("db-username").value.trim()
+    );
+    const password = encodeURIComponent(
+      document.getElementById("db-password").value.trim()
+    );
+    const host = document.getElementById("db-host").value.trim();
+    const port = document.getElementById("db-port").value.trim();
+    const dbname = document.getElementById("db-name").value.trim();
+    const url = `${provider}://${username}:${password}@${host}:${port}/${dbname}`;
+    const result = await ipcRenderer.invoke("set-db-url", url);
+    if (result.success) {
+      const staticField = document.getElementById("admin-db-url-static");
+      if (staticField) {
+        staticField.value = url;
+      }
+      // Call the DB INIT handler and await it before closing the modal
+      const checkResult = await ipcRenderer.invoke("check-and-init-db", url);
+      modal.remove();
+      showToast(
+        "Database URL saved! Please restart the app for changes to take effect." +
+          (checkResult.success
+            ? " " + checkResult.message
+            : " (DB check failed: " + checkResult.error + ")")
+      );
+    } else {
+      alert("Failed to save: " + result.error);
+    }
+  });
+
+  // Close handler
+  document
+    .getElementById("close-db-url-modal")
+    .addEventListener("click", () => {
+      modal.remove();
+    });
+
+  // Cancel button handler
+  document
+    .getElementById("cancel-db-url-btn-modal")
+    .addEventListener("click", () => {
+      modal.remove();
+    });
+
+  // Test connection button handler
+  document
+    .getElementById("test-db-connection-btn-modal")
+    .addEventListener("click", async () => {
+      const provider = document.getElementById("db-provider").value.trim();
+      const username = document.getElementById("db-username").value.trim();
+      const password = document.getElementById("db-password").value.trim();
+      const host = document.getElementById("db-host").value.trim();
+      const port = document.getElementById("db-port").value.trim();
+      const dbName = document.getElementById("db-name").value.trim();
+
+      if (!provider || !username || !host || !port || !dbName) {
+        alert("Please fill in all required fields (password is optional)");
+        return;
+      }
+
+      // Construct the database URL
+      const dbUrl = `${provider}://${username}:${password}@${host}:${port}/${dbName}`;
+
+      // Close the modal immediately
+      const modalElem = document.getElementById("db-url-modal");
+      if (modalElem) modalElem.remove();
+
+      // Show loading modal
+      showLoadingModal("Connecting...");
+
+      try {
+        const result = await ipcRenderer.invoke("test-db-connection", dbUrl);
+        hideLoadingModal();
+        if (result.success) {
+          alert("Connection Successful!\n" + (result.message || ""));
+        } else {
+          alert("Connection Failed:\n" + (result.error || "Unknown error"));
+        }
+      } catch (error) {
+        hideLoadingModal();
+        alert("Connection Error:\n" + (error.message || "Unknown error"));
+      }
+    });
+}
+
+// Add RFID Settings Modal function
+function showRfidSettingsModal() {
+  // Remove any existing modal
+  const existing = document.getElementById("rfid-settings-modal");
+  if (existing) existing.remove();
+
+  // Create modal overlay
+  const modal = document.createElement("div");
+  modal.id = "rfid-settings-modal";
+  modal.style.position = "fixed";
+  modal.style.top = "0";
+  modal.style.left = "0";
+  modal.style.width = "100vw";
+  modal.style.height = "100vh";
+  modal.style.background = "rgba(0,0,0,0.3)";
+  modal.style.display = "flex";
+  modal.style.alignItems = "center";
+  modal.style.justifyContent = "center";
+  modal.style.zIndex = "9998";
+
+  modal.innerHTML = `
+    <div style="background: #fff; padding: 40px 32px; border-radius: 12px; min-width: 500px; min-height: 280px; max-width: 95vw; box-shadow: 0 4px 24px rgba(0,0,0,0.18); position: relative; z-index: 10000;">
+      <button id="close-rfid-settings-modal" style="position: absolute; top: 14px; right: 14px; background: none; border: none; font-size: 1.7rem; cursor: pointer; color: #888;">&times;</button>
+      <h2 style="margin-top:0; margin-bottom: 36px; color: #333; font-weight: 600;">Edit RFID Settings</h2>
+      
+      <div style="margin-bottom: 20px;">
+        <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #555; font-size: 14px;">Reader IP Address</label>
+        <input id="rfid-ip" type="text" style="width: 100%; padding: 12px 16px; border: 2px solid #e1e5e9; border-radius: 8px; font-size: 14px; transition: all 0.2s ease; box-sizing: border-box;" placeholder="e.g., 10.10.100.254" />
+      </div>
+      
+      <div style="margin-bottom: 24px;">
+        <label style="display: block; margin-bottom: 8px; font-weight: 500; color: #555; font-size: 14px;">Reader Port</label>
+        <input id="rfid-port" type="number" style="width: 100%; padding: 12px 16px; border: 2px solid #e1e5e9; border-radius: 8px; font-size: 14px; transition: all 0.2s ease; box-sizing: border-box;" placeholder="e.g., 49152" min="1" max="65535" />
+      </div>
+      
+      <div style="display: flex; justify-content: flex-end; gap: 12px;">
+        <button id="test-rfid-connection-btn-modal" style="padding: 10px 20px; border: 1px solid #28a745; background: #28a745; color: white; border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.2s ease;">Test Connection</button>
+        <button id="cancel-rfid-settings-btn-modal" style="padding: 10px 20px; border: 1px solid #ddd; background: #f8f9fa; color: #666; border-radius: 6px; cursor: pointer; font-size: 14px; transition: all 0.2s ease;">Cancel</button>
+        <button id="save-rfid-settings-btn-modal" class="btn-primary" style="padding: 10px 20px; border-radius: 6px; font-size: 14px;">Save Settings</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+
+  // Fetch and display current RFID settings
+  ipcRenderer.invoke("get-rfid-settings").then((result) => {
+    if (result.success) {
+      document.getElementById("rfid-ip").value = result.settings.ip;
+      document.getElementById("rfid-port").value = result.settings.port;
+    } else {
+      // Set defaults if failed to fetch
+      document.getElementById("rfid-ip").value = "10.10.100.254";
+      document.getElementById("rfid-port").value = "49152";
+    }
+  });
+
+  // Add hover and focus effects for text fields
+  const inputs = modal.querySelectorAll("input");
+  inputs.forEach((input) => {
+    input.addEventListener("focus", function () {
+      this.style.borderColor = "#007bff";
+      this.style.boxShadow = "0 0 0 3px rgba(0, 123, 255, 0.1)";
+    });
+
+    input.addEventListener("blur", function () {
+      this.style.borderColor = "#e1e5e9";
+      this.style.boxShadow = "none";
+    });
+
+    input.addEventListener("mouseenter", function () {
+      if (document.activeElement !== this) {
+        this.style.borderColor = "#c1c7cd";
+      }
+    });
+
+    input.addEventListener("mouseleave", function () {
+      if (document.activeElement !== this) {
+        this.style.borderColor = "#e1e5e9";
+      }
+    });
+  });
+
+  // Save handler
+  const saveBtn = document.getElementById("save-rfid-settings-btn-modal");
+  saveBtn.addEventListener("click", async () => {
+    const ip = document.getElementById("rfid-ip").value.trim();
+    const port = parseInt(document.getElementById("rfid-port").value.trim());
+
+    if (!ip || !port) {
+      alert("Please fill in all fields");
+      return;
+    }
+
+    const result = await ipcRenderer.invoke("set-rfid-settings", { ip, port });
+    if (result.success) {
+      // Update the static fields
+      const ipField = document.getElementById("rfid-ip-static");
+      const portField = document.getElementById("rfid-port-static");
+      if (ipField) ipField.value = ip;
+      if (portField) portField.value = port;
+
+      modal.remove();
+      showToast(
+        "RFID settings updated successfully! Please restart the app for changes to take effect."
+      );
+    } else {
+      alert("Failed to save RFID settings: " + result.error);
+    }
+  });
+
+  // Close handler
+  document
+    .getElementById("close-rfid-settings-modal")
+    .addEventListener("click", () => {
+      modal.remove();
+    });
+
+  // Cancel button handler
+  document
+    .getElementById("cancel-rfid-settings-btn-modal")
+    .addEventListener("click", () => {
+      modal.remove();
+    });
+
+  // Test connection button handler
+  document
+    .getElementById("test-rfid-connection-btn-modal")
+    .addEventListener("click", async () => {
+      const ip = document.getElementById("rfid-ip").value.trim();
+      const port = parseInt(document.getElementById("rfid-port").value.trim());
+
+      if (!ip || !port) {
+        alert("Please fill in both IP address and port fields");
+        return;
+      }
+
+      // Close the modal immediately
+      const modalElem = document.getElementById("rfid-settings-modal");
+      if (modalElem) modalElem.remove();
+
+      // Show loading modal
+      showLoadingModal("Connecting...");
+
+      try {
+        const result = await ipcRenderer.invoke("test-rfid-connection", {
+          ip,
+          port,
+        });
+        hideLoadingModal();
+        if (result.success) {
+          alert("Connection Successful!\n" + (result.message || ""));
+        } else {
+          alert("Connection Failed:\n" + (result.error || "Unknown error"));
+        }
+      } catch (error) {
+        hideLoadingModal();
+        alert("Connection Error:\n" + (error.message || "Unknown error"));
+      }
+    });
+}
+
+// Utility: Show/hide custom loading modal
+function showLoadingModal(message = "Connecting...") {
+  // Remove any existing loading modal
+  const existing = document.getElementById("custom-loading-modal");
+  if (existing) existing.remove();
+
+  const modal = document.createElement("div");
+  modal.id = "custom-loading-modal";
+  modal.style.position = "fixed";
+  modal.style.top = "0";
+  modal.style.left = "0";
+  modal.style.width = "100vw";
+  modal.style.height = "100vh";
+  modal.style.background = "rgba(0,0,0,0.2)";
+  modal.style.display = "flex";
+  modal.style.alignItems = "center";
+  modal.style.justifyContent = "center";
+  modal.style.zIndex = "20000";
+
+  modal.innerHTML = `
+    <div style="background: #fff; padding: 32px 40px; border-radius: 12px; display: flex; flex-direction: column; align-items: center; box-shadow: 0 4px 24px rgba(0,0,0,0.18);">
+      <div class="loader" style="border: 4px solid #f3f3f3; border-top: 4px solid #007bff; border-radius: 50%; width: 48px; height: 48px; animation: spin 1s linear infinite; margin-bottom: 18px;"></div>
+      <div style="font-size: 18px; color: #333; font-weight: 500;">${message}</div>
+    </div>
+    <style>
+      @keyframes spin {
+        0% { transform: rotate(0deg);}
+        100% { transform: rotate(360deg);}
+      }
+    </style>
+  `;
+  document.body.appendChild(modal);
+}
+
+function hideLoadingModal() {
+  const modal = document.getElementById("custom-loading-modal");
+  if (modal) modal.remove();
+}
+
+async function loadTimeLogsTable(page = 1) {
+  const reportContent = document.getElementById("report-content");
+  reportContent.innerHTML = `
+    <div class="users-table-container">
+      <div class="table-scroll-container">
+        <table class="users-table" id="timelogs-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Vehicle ID</th>
+              <th>Vehicle Name</th>
+              <th>Time In</th>
+              <th>Time Out</th>
+            </tr>
+          </thead>
+          <tbody id="timelogs-tbody"></tbody>
+        </table>
+      </div>
+      <div class="table-divider"></div>
+      <div id="timelogs-pagination" class="pagination-container"></div>
+    </div>
+  `;
+  try {
+    const startDate = document.getElementById("start-date").value;
+    const endDate = document.getElementById("end-date").value;
+    const result = await ipcRenderer.invoke("get-all-timelogs", {
+      startDate,
+      endDate,
+    });
+    if (!result.success) {
+      document.getElementById(
+        "timelogs-tbody"
+      ).innerHTML = `<tr><td colspan='5'>Error: ${result.error}</td></tr>`;
+      return;
+    }
+    timelogsData = result.logs || [];
+    timelogsCurrentPage = page;
+    renderTimeLogsTable();
+    renderTimeLogsPagination(timelogsData.length);
+  } catch (err) {
+    document.getElementById(
+      "timelogs-tbody"
+    ).innerHTML = `<tr><td colspan='5'>Error loading time logs: ${err.message}</td></tr>`;
+  }
+}
+
+function renderTimeLogsTable() {
+  const tbody = document.getElementById("timelogs-tbody");
+  if (!tbody) return;
+  const startIndex = (timelogsCurrentPage - 1) * timelogsRowsPerPage;
+  const endIndex = startIndex + timelogsRowsPerPage;
+  const paginatedLogs = timelogsData.slice(startIndex, endIndex);
+  tbody.innerHTML = paginatedLogs
+    .map(
+      (log) => `
+        <tr>
+          <td>${log.id}</td>
+          <td>${log.vehicleId || ""}</td>
+          <td>${log.vehicle?.vehicleName || ""}</td>
+          <td>${log.timeIn ? new Date(log.timeIn).toLocaleString() : ""}</td>
+          <td>${log.timeOut ? new Date(log.timeOut).toLocaleString() : ""}</td>
+        </tr>
+      `
+    )
+    .join("");
+  // Add blank rows if needed
+  const blankRows = timelogsRowsPerPage - paginatedLogs.length;
+  for (let i = 0; i < blankRows; i++) {
+    const emptyRow = document.createElement("tr");
+    for (let j = 0; j < 5; j++) {
+      // 5 columns
+      const emptyCell = document.createElement("td");
+      emptyCell.innerHTML = "&nbsp;";
+      emptyRow.appendChild(emptyCell);
+    }
+    tbody.appendChild(emptyRow);
+  }
+  // Enable export button if there is data
+  const exportBtn = document.getElementById("export-excel-btn");
+  if (exportBtn) exportBtn.disabled = timelogsData.length === 0;
+}
+
+function renderTimeLogsPagination(total) {
+  const container = document.getElementById("timelogs-pagination");
+  if (!container) return;
+  container.className = "pagination-container";
+  const totalPages = Math.ceil(total / timelogsRowsPerPage);
+  let html = "";
+  if (totalPages > 1) {
+    html += `<button class="pagination-btn" ${
+      timelogsCurrentPage === 1 ? "disabled" : ""
+    } onclick="loadTimeLogsTable(${
+      timelogsCurrentPage - 1
+    })">Previous</button>`;
+    for (let i = 1; i <= totalPages; i++) {
+      html += `<button class="pagination-btn${
+        i === timelogsCurrentPage ? " active" : ""
+      }" onclick="loadTimeLogsTable(${i})">${i}</button>`;
+    }
+    html += `<button class="pagination-btn" ${
+      timelogsCurrentPage === totalPages ? "disabled" : ""
+    } onclick="loadTimeLogsTable(${timelogsCurrentPage + 1})">Next</button>`;
+  }
+  container.innerHTML = html;
+}

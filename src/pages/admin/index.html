@@ -7,6 +7,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../../assets/fontawesome-free-6.0.0-web/css/all.min.css">
     <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
     <div class="admin-container">
@@ -160,16 +161,6 @@
                         <div class="report-controls">
                             <div class="report-filters">
                                 <div class="filter-group">
-                                    <label for="report-type">Report Type:</label>
-                                    <select id="report-type">
-                                        <option value="comprehensive">Comprehensive Report</option>
-                                        <option value="daily">Daily Activity Report</option>
-                                        <option value="vehicle">Vehicle Report</option>
-                                        <option value="parking">Parking Status Report</option>
-                                    </select>
-                                </div>
-                                
-                                <div class="filter-group">
                                     <label for="start-date">Start Date:</label>
                                     <input type="date" id="start-date" value="">
                                 </div>
@@ -178,19 +169,12 @@
                                     <label for="end-date">End Date:</label>
                                     <input type="date" id="end-date" value="">
                                 </div>
-                                
-                                <button class="generate-btn" onclick="generateReport()">
-                                    <i class="fas fa-sync-alt"></i> Generate Report
-                                </button>
                             </div>
                         </div>
                         
                         <div class="report-actions">
-                            <button class="export-btn" onclick="exportReport('json')" disabled id="export-json-btn">
-                                <i class="fas fa-download"></i> Export JSON
-                            </button>
-                            <button class="export-btn" onclick="exportReport('csv')" disabled id="export-csv-btn">
-                                <i class="fas fa-file-csv"></i> Export CSV
+                            <button class="export-btn" onclick="exportReport('excel')" disabled id="export-excel-btn">
+                                <i class="fas fa-file-excel"></i> Export Report
                             </button>
                         </div>
                         
@@ -221,21 +205,25 @@
                         </div>
                         
                         <div class="vehicles-table-container">
-                            <table class="vehicles-table" id="vehicles-table">
-                                <thead>
-                                    <tr>
-                                        <th>Plate Number</th>
-                                        <th>Vehicle Name</th>
-                                        <th>EPC Tag</th>
-                                        <th>Status</th>
-                                        <th>Last Activity</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="vehicles-tbody">
-                                    <!-- Vehicle data will be loaded here -->
-                                </tbody>
-                            </table>
+                            <div class="table-scroll-container">
+                                <table class="vehicles-table" id="vehicles-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Plate Number</th>
+                                            <th>Vehicle Name</th>
+                                            <th>EPC Tag</th>
+                                            <th>Status</th>
+                                            <th>Last Activity</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="vehicles-tbody">
+                                        <!-- Vehicle data will be loaded here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="table-divider"></div>
+                            <div id="vehicle-pagination"></div>
                         </div>
                     </div>
                 </div>
@@ -251,21 +239,25 @@
                         <div class="users-header">
                         </div>
                         <div class="users-table-container">
-                            <table class="users-table" id="users-table">
-                                <thead>
-                                    <tr>
-                                        <th>Name</th>
-                                        <th>Email</th>
-                                        <th>Role</th>
-                                        <th>Status</th>
-                                        <th>Last Login</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="users-tbody">
-                                    <!-- User data will be loaded here -->
-                                </tbody>
-                            </table>
+                            <div class="table-scroll-container">
+                                <table class="users-table" id="users-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Email</th>
+                                            <th>Role</th>
+                                            <th>Status</th>
+                                            <th>Last Login</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="users-tbody">
+                                        <!-- User data will be loaded here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="table-divider"></div>
+                            <div id="user-pagination"></div>
                         </div>
                     </div>
                 </div>
@@ -294,20 +286,22 @@
                             <h3>RFID Settings</h3>
                             <div class="setting-item">
                                 <label>Reader IP Address:</label>
-                                <input type="text" value="10.10.100.254">
+                                <input type="text" value="10.10.100.254" disabled id="rfid-ip-static">
                             </div>
                             <div class="setting-item">
                                 <label>Reader Port:</label>
-                                <input type="number" value="49152">
+                                <input type="number" value="49152" disabled id="rfid-port-static">
                             </div>
+                            <button class="btn-primary" id="open-rfid-settings-btn" style="margin-top: 10px;">Edit RFID Settings</button>
                         </div>
                         
                         <div class="settings-section">
                             <h3>Database Settings</h3>
                             <div class="setting-item">
                                 <label>Database URL:</label>
-                                <input type="text" value="mysql://localhost:3306/rfid_tracker" disabled>
+                                <input type="text" value="mysql://localhost:3306/rfid_tracker" disabled id="admin-db-url-static">
                             </div>
+                            <button class="btn-primary" id="open-db-settings-btn" style="margin-top: 10px;">Edit Database URL</button>
                         </div>
                     </div>
                 </div>
@@ -349,6 +343,34 @@
         </div>
     </div> -->
     <!-- End Add User Modal -->
+
+    <!-- RFID Settings Modal -->
+    <div id="rfid-settings-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="close" id="close-rfid-settings-modal">&times;</span>
+            <div class="modal-header">
+                <h2>Edit RFID Settings</h2>
+            </div>
+            <div class="modal-body">
+                <div id="rfid-settings-success" class="success-message" style="display:none;"></div>
+                <div id="rfid-settings-error" class="error-message" style="display:none;"></div>
+                <form id="rfid-settings-form">
+                    <div class="form-group">
+                        <label for="rfid-ip">Reader IP Address</label>
+                        <input type="text" id="rfid-ip" name="rfid-ip" required autocomplete="off" placeholder="e.g., 10.10.100.254">
+                    </div>
+                    <div class="form-group">
+                        <label for="rfid-port">Reader Port</label>
+                        <input type="number" id="rfid-port" name="rfid-port" required autocomplete="off" placeholder="e.g., 49152" min="1" max="65535">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="login-btn">Save Settings</button>
+                        <button type="button" class="cancel-btn" id="cancel-rfid-settings-btn">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <!-- Toast Notification -->
     <div id="toast" class="toast" style="display:none;"></div>

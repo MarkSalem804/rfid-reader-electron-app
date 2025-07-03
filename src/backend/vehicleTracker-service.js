@@ -99,6 +99,11 @@ async function getAllTimeLogs() {
   }
 }
 
+async function getAllTimeLogsForReport(options) {
+  // options can include { startDate, endDate }
+  return await db.getAllTimeLogs(options);
+}
+
 // Generate comprehensive report
 async function generateReport(options = {}) {
   try {
@@ -129,6 +134,9 @@ async function generateReport(options = {}) {
       case "comprehensive":
       default:
         report = await generateComprehensiveReport(startDate, endDate);
+        break;
+      case "timelogs":
+        report = await timelogsReport(startDate, endDate);
         break;
     }
 
@@ -365,6 +373,7 @@ async function getAllVehiclesWithStats() {
 }
 
 module.exports = {
+  getAllTimeLogsForReport,
   handleTagScan,
   addVehicle,
   addRfidTagToVehicle,
