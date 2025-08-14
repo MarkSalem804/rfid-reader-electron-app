@@ -120,15 +120,41 @@ async function updateTimeOut(logId) {
   return result;
 }
 
-// Find the latest timeLog with no timeOut (open entry)
+// Create time-out entry (for vehicles starting inside)
+async function createTimeOut(vehicleId) {
+  console.log("[DEBUG] createTimeOut called with vehicleId:", vehicleId);
+  const result = await prisma.timeLogs.create({
+    data: {
+      vehicleId,
+      timeOut: new Date(),
+    },
+  });
+  console.log("[DEBUG] createTimeOut result:", result);
+  return result;
+}
+
+// Update the time-in field
+async function updateTimeIn(logId) {
+  console.log("[DEBUG] updateTimeIn called with logId:", logId);
+  const result = await prisma.timeLogs.update({
+    where: { id: logId },
+    data: {
+      timeIn: new Date(),
+    },
+  });
+  console.log("[DEBUG] updateTimeIn result:", result);
+  return result;
+}
+
+// Find the latest timeLog with no timeIn (exit entry waiting for entry)
 async function getOpenTimeLog(vehicleId) {
   return await prisma.timeLogs.findFirst({
     where: {
       vehicleId,
-      timeOut: null,
+      timeIn: null,
     },
     orderBy: {
-      timeIn: "desc",
+      timeOut: "desc",
     },
   });
 }
@@ -144,7 +170,7 @@ async function getAllVehicleEntries() {
         },
       },
       orderBy: {
-        timeIn: "desc",
+        timeOut: "desc",
       },
     });
     return fetchedData;
@@ -158,7 +184,7 @@ async function getTimeLogsByDateRange(startDate, endDate) {
   try {
     const fetchedData = await prisma.timeLogs.findMany({
       where: {
-        timeIn: {
+        timeOut: {
           gte: new Date(startDate),
           lte: new Date(endDate),
         },
@@ -171,7 +197,7 @@ async function getTimeLogsByDateRange(startDate, endDate) {
         },
       },
       orderBy: {
-        timeIn: "desc",
+        timeOut: "desc",
       },
     });
     return fetchedData;
@@ -187,7 +213,7 @@ async function getAllVehiclesWithStats() {
       include: {
         timeLogs: {
           orderBy: {
-            timeIn: "desc",
+            timeOut: "desc",
           },
         },
         rfidTags: {
@@ -212,7 +238,7 @@ async function getVehicleStatsByDateRange(startDate, endDate) {
     const stats = await prisma.timeLogs.groupBy({
       by: ["vehicleId"],
       where: {
-        timeIn: {
+        timeOut: {
           gte: new Date(startDate),
           lte: new Date(endDate),
         },
@@ -231,12 +257,13 @@ async function getVehicleStatsByDateRange(startDate, endDate) {
   }
 }
 
-// Get currently parked vehicles (vehicles with open time logs)
+// Get currently parked vehicles (vehicles that have left but not returned)
 async function getCurrentlyParkedVehicles() {
   try {
     const parkedVehicles = await prisma.timeLogs.findMany({
       where: {
-        timeOut: null,
+        timeOut: { not: null },
+        timeIn: null,
       },
       include: {
         vehicle: {
@@ -246,7 +273,7 @@ async function getCurrentlyParkedVehicles() {
         },
       },
       orderBy: {
-        timeIn: "desc",
+        timeOut: "desc",
       },
     });
     return parkedVehicles;
@@ -267,7 +294,7 @@ async function getDailySummary(date) {
     const summary = await prisma.timeLogs.groupBy({
       by: ["vehicleId"],
       where: {
-        timeIn: {
+        timeOut: {
           gte: startOfDay,
           lte: endOfDay,
         },
@@ -328,23 +355,97 @@ async function deactivateRfidTag(epc) {
 async function getAllTimeLogs({ startDate, endDate } = {}) {
   const where = {};
   if (startDate || endDate) {
-    where.timeOut = {};
-    if (startDate) where.timeOut.gte = new Date(startDate);
-    if (endDate) where.timeOut.lte = new Date(endDate);
+    where.OR = [{ timeIn: {} }, { timeOut: {} }];
+    if (startDate) {
+      if (where.OR[0].timeIn) where.OR[0].timeIn.gte = new Date(startDate);
+      if (where.OR[1].timeOut) where.OR[1].timeOut.gte = new Date(startDate);
+    }
+    if (endDate) {
+      if (where.OR[0].timeIn) where.OR[0].timeIn.lte = new Date(endDate);
+      if (where.OR[1].timeOut) where.OR[1].timeOut.lte = new Date(endDate);
+    }
   }
+
   const logs = await prisma.timeLogs.findMany({
     where,
     include: {
       vehicle: {
-        select: { vehicleName: true },
+        select: { plateNo: true, vehicleName: true },
       },
     },
+    orderBy: [{ timeIn: "desc" }, { timeOut: "desc" }],
   });
 
   // LOG THE ACTUAL DATA
-  // console.log("Fetched timeLogs from database:", JSON.stringify(logs, null, 2));
+  console.log("Fetched timeLogs from database:", JSON.stringify(logs, null, 2));
 
   return logs;
+}
+
+// Update vehicle information
+async function updateVehicle(vehicleId, data) {
+  try {
+    const { plateNo, vehicleName } = data;
+
+    const updatedVehicle = await prisma.vehicle.update({
+      where: { id: vehicleId },
+      data: {
+        plateNo,
+        vehicleName,
+        updatedAt: new Date(),
+      },
+      include: {
+        rfidTags: {
+          where: { isActive: true },
+        },
+      },
+    });
+
+    return { status: "updated", vehicle: updatedVehicle };
+  } catch (err) {
+    console.error("updateVehicle error:", err);
+    throw err;
+  }
+}
+
+// Get vehicle by ID
+async function getVehicleById(vehicleId) {
+  try {
+    const vehicle = await prisma.vehicle.findUnique({
+      where: { id: vehicleId },
+      include: {
+        rfidTags: {
+          where: { isActive: true },
+        },
+        timeLogs: {
+          orderBy: {
+            timeOut: "desc",
+          },
+          take: 1,
+        },
+      },
+    });
+    return vehicle;
+  } catch (err) {
+    console.error("getVehicleById error:", err);
+    throw err;
+  }
+}
+
+async function createTimeInManual(vehicleId, datetime) {
+  return await prisma.timeLogs.create({
+    data: {
+      vehicleId,
+      timeIn: new Date(datetime),
+    },
+  });
+}
+
+async function updateTimeOutManual(logId, datetime) {
+  return await prisma.timeLogs.update({
+    where: { id: logId },
+    data: { timeOut: new Date(datetime) },
+  });
 }
 
 module.exports = {
@@ -354,6 +455,8 @@ module.exports = {
   getVehicleRfidTags,
   createTimeIn,
   updateTimeOut,
+  createTimeOut,
+  updateTimeIn,
   getOpenTimeLog,
   getAllVehicleEntries,
   getTimeLogsByDateRange,
@@ -366,4 +469,8 @@ module.exports = {
   getAllRfidTags,
   deactivateRfidTag,
   getAllTimeLogs,
+  updateVehicle,
+  getVehicleById,
+  createTimeInManual,
+  updateTimeOutManual,
 };

@@ -17,7 +17,7 @@ body {
   justify-content: center;
   padding: 80px 20px;
   box-sizing: border-box;
-  height: 100%;
+  height: 110%;
   margin-top: 60px;
   margin-bottom: 60px;
 }
@@ -88,13 +88,17 @@ header .header-left h1 {
 
 .content-wrapper {
   display: flex;
-  gap: 20px;
+  gap: 15px;
   height: 100%;
+  padding: 20px 15px 15px 15px;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .main-section {
   flex: 2;
   min-width: 0;
+  padding: 10px;
 }
 
 .logs-section {
@@ -102,14 +106,15 @@ header .header-left h1 {
   min-width: 300px;
   background: white;
   border-radius: 10px;
-  padding: 10px 20px;
+  padding: 15px;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
   height: fit-content;
+  margin-top: 10px;
 }
 
 .logs-section h2 {
   text-transform: uppercase;
-  padding: 15px 0;
+  padding: 10px 0;
   margin: -5px 0 0 0;
   font-size: 1.5rem;
   font-weight: 600;
@@ -117,8 +122,12 @@ header .header-left h1 {
   border-bottom: 2px solid #2c3e50;
 }
 
+.logs-section h2 i {
+  margin-right: 10px;
+}
+
 .logs-container {
-  max-height: calc(100vh - 300px);
+  max-height: 700px;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -148,6 +157,64 @@ header .header-left h1 {
   font-weight: 400;
 }
 
+/* Log entry styles */
+.log-entry {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #2c3e50;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.log-entry:hover {
+  background: #e9ecef;
+  transform: translateX(2px);
+}
+
+.log-entry.log-success {
+  border-left-color: #28a745;
+}
+
+.log-entry.log-info {
+  border-left-color: #17a2b8;
+}
+
+.log-entry.log-error {
+  border-left-color: #dc3545;
+}
+
+.log-icon {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #2c3e50;
+  font-size: 14px;
+}
+
+.log-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.log-entry .log-message {
+  color: #333;
+  font-weight: 500;
+  margin-bottom: 5px;
+}
+
+.log-entry .log-time {
+  color: #666;
+  font-size: 0.8rem;
+  font-weight: 400;
+}
+
 .status-container {
   background-color: white;
   padding: 15px 0;
@@ -172,16 +239,25 @@ header .header-left h1 {
 
 .vehicle-table-container h2 {
   text-transform: uppercase;
-  padding: 20px 0;
+  padding: 10px 0;
   margin: 0;
   font-size: 1.5rem;
   font-weight: 600;
 }
 
+.vehicle-table-container h2 i {
+  margin-right: 10px;
+}
+
 .vehicle-table-container {
-  height: 700px;
   display: flex;
   flex-direction: column;
+  background: white;
+  border-radius: 10px;
+  padding: 15px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+  margin-bottom: 0;
+  height: 700px;
 }
 
 .vehicle-table {
@@ -191,22 +267,23 @@ header .header-left h1 {
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  height: 100%;
+  margin-bottom: 0;
   table-layout: fixed;
 }
 
 .vehicle-table thead {
-  /* No custom display/layout */
+  display: table;
+  width: 100%;
+  table-layout: fixed;
 }
 
 .vehicle-table tbody {
   display: block;
-  height: 550px; /* Adjust this value to fit 10 rows visually */
+  max-height: 500px;
   overflow-y: auto;
-  width: 100%;
 }
 
-.vehicle-table thead,
+.vehicle-table thead tr,
 .vehicle-table tbody tr {
   display: table;
   width: 100%;
@@ -214,8 +291,7 @@ header .header-left h1 {
 }
 
 .vehicle-table tbody tr {
-  height: 40px;
-  /* No need for empty row logic anymore */
+  height: 50px;
 }
 
 .vehicle-table th {
@@ -256,20 +332,27 @@ header .header-left h1 {
 
 .pagination-controls {
   display: flex;
-  justify-content: flex-end;
+  flex-direction: row;
   align-items: center;
-  padding: 15px;
-  gap: 10px;
+  justify-content: center;
+  padding: 8px 15px;
+  gap: 12px;
+  background-color: #2c3e50;
   border: 1px solid #2c3e50;
   border-radius: 0 0 8px 8px;
-  background-color: #2c3e50;
-  margin-top: -1px;
+  margin-top: 0;
   color: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: relative;
+  z-index: 10;
+  flex-wrap: wrap;
+  min-height: 50px;
 }
 
 .pagination-controls label {
   color: white;
   font-size: 0.95rem;
+  font-weight: 500;
 }
 
 .pagination-controls select {
@@ -279,6 +362,7 @@ header .header-left h1 {
   border-radius: 4px;
   padding: 5px 10px;
   margin-right: 10px;
+  font-size: 14px;
 }
 
 .pagination-controls button {
@@ -458,6 +542,17 @@ p {
   to {
     opacity: 1;
     transform: translateY(0);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
   }
 }
 
@@ -849,4 +944,98 @@ footer {
   background: #b0b0b0;
   color: #fff;
   cursor: not-allowed;
+}
+
+.real-time-clock {
+  text-align: center;
+  margin-bottom: 10px;
+  font-size: 24px;
+  font-weight: bold;
+  color: #fff;
+  background: #2c3e50;
+  padding: 10px;
+  border-radius: 8px;
+}
+
+.real-time-clock i {
+  margin-right: 10px;
+}
+
+.filter-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.filter-status {
+  margin-top: 2px;
+  font-size: 12px;
+  color: #6c757d;
+}
+
+.filter-controls-right {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.filter-controls-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-label {
+  color: #6c757d;
+  font-size: 14px;
+}
+
+.filter-select {
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  background: white;
+}
+
+.filter-button {
+  padding: 6px 10px;
+  background: #6c757d;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.refresh-button {
+  padding: 8px 16px;
+  background: #28a745;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  flex-items: center;
+  gap: 8px;
+}
+
+.quick-jump-input {
+  width: 80px;
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.quick-jump-button {
+  padding: 6px 12px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
 }

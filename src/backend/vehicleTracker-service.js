@@ -11,19 +11,19 @@ async function handleTagScan(epc) {
 
     const openLog = await db.getOpenTimeLog(vehicle.id);
 
-    if (openLog && !openLog.timeOut) {
-      console.log("Vehicle is exiting...");
-    } else {
-      console.log("Vehicle is entering...");
-    }
+    // CORRECTED LOGIC: Vehicles start inside the building
+    // If there's NO open log -> vehicle is exiting (create timeOut)
+    // If there's an open log (timeOut but no timeIn) -> vehicle is entering (update timeIn)
 
-    if (openLog && !openLog.timeOut) {
-      // Vehicle is exiting
-      await db.updateTimeOut(openLog.id);
+    if (!openLog) {
+      console.log("Vehicle is exiting the building...");
+      // Vehicle is exiting - create timeOut entry
+      await db.createTimeOut(vehicle.id);
       return { status: "timeout", vehicle };
     } else {
-      // Vehicle is entering
-      await db.createTimeIn(vehicle.id);
+      console.log("Vehicle is entering the building...");
+      // Vehicle is entering - update timeIn
+      await db.updateTimeIn(openLog.id);
       return { status: "timein", vehicle };
     }
   } catch (err) {
@@ -372,6 +372,40 @@ async function getAllVehiclesWithStats() {
   return await db.getAllVehiclesWithStats();
 }
 
+// Update vehicle information
+async function updateVehicle(vehicleId, data) {
+  try {
+    const result = await db.updateVehicle(vehicleId, data);
+    return result;
+  } catch (error) {
+    console.error("Error updating vehicle:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+// Get vehicle by ID
+async function getVehicleById(vehicleId) {
+  try {
+    const vehicle = await db.getVehicleById(vehicleId);
+    return vehicle;
+  } catch (error) {
+    console.error("Error getting vehicle by ID:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+async function createTimeInManual(vehicleId, datetime) {
+  return await db.createTimeInManual(vehicleId, datetime);
+}
+
+async function updateTimeOutManual(logId, datetime) {
+  return await db.updateTimeOutManual(logId, datetime);
+}
+
+async function getOpenTimeLog(vehicleId) {
+  return await db.getOpenTimeLog(vehicleId);
+}
+
 module.exports = {
   getAllTimeLogsForReport,
   handleTagScan,
@@ -389,4 +423,9 @@ module.exports = {
   extractEpcTag,
   isTagRegistered,
   getAllVehiclesWithStats,
+  updateVehicle,
+  getVehicleById,
+  createTimeInManual,
+  updateTimeOutManual,
+  getOpenTimeLog,
 };

@@ -169,13 +169,19 @@
                                     <label for="end-date">End Date:</label>
                                     <input type="date" id="end-date" value="">
                                 </div>
+                                
+                                <div class="filter-group">
+                                    <button class="generate-btn" onclick="loadTimeLogsTable()" id="load-data-btn">
+                                        <i class="fas fa-search"></i> Load Data
+                                    </button>
+                                </div>
+                                
+                                <div class="filter-group">
+                                    <button class="export-btn" onclick="exportReportExcel()" disabled id="export-excel-btn">
+                                        <i class="fas fa-file-excel"></i> Export Report
+                                    </button>
+                                </div>
                             </div>
-                        </div>
-                        
-                        <div class="report-actions">
-                            <button class="export-btn" onclick="exportReport('excel')" disabled id="export-excel-btn">
-                                <i class="fas fa-file-excel"></i> Export Report
-                            </button>
                         </div>
                         
                         <div id="report-content" class="report-content">

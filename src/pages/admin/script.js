@@ -855,17 +855,25 @@ async function exportReport(format) {
     return;
   }
 
+  // Get the current date range for the filename
+  const startDate = document.getElementById("start-date").value;
+  const endDate = document.getElementById("end-date").value;
+  const dateRangeText =
+    startDate && endDate ? `_${startDate}_to_${endDate}` : "";
+
   // Get headers from the table
-  const headers = ["ID", "Vehicle ID", "Vehicle Name", "Time In", "Time Out"];
+  const headers = ["Vehicle Name", "Time In", "Time Out"];
 
   // Prepare data rows
   const rows = timelogsData.map((log) => [
-    log.id,
-    log.vehicleId || "",
     log.vehicle?.vehicleName || "",
     log.timeIn ? new Date(log.timeIn).toLocaleString() : "",
     log.timeOut ? new Date(log.timeOut).toLocaleString() : "",
   ]);
+
+  console.log(
+    `Exporting ${timelogsData.length} records for date range: ${startDate} to ${endDate}`
+  );
 
   // Try to use SheetJS (xlsx) if available
   let isSheetJS = false;
@@ -879,6 +887,22 @@ async function exportReport(format) {
   if (isSheetJS) {
     // SheetJS export
     const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+
+    // Add color to header row (A1:C1 for 3 columns)
+    const headerRange = ["A1", "B1", "C1"];
+    headerRange.forEach((cell) => {
+      if (!ws[cell]) return;
+      ws[cell].s = {
+        fill: {
+          patternType: "solid",
+          fgColor: { rgb: "C6EFCE" }, // Light green
+        },
+        font: {
+          bold: true,
+        },
+      };
+    });
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "TimeLogs");
     const wbout = XLSX.write(wb, { bookType: "xlsx", type: "array" });
@@ -890,11 +914,16 @@ async function exportReport(format) {
     a.href = url;
     a.download = `timelogs-report-${
       new Date().toISOString().split("T")[0]
-    }.xlsx`;
+    }${dateRangeText}.xlsx`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+
+    // Show success message
+    showToast(
+      `Successfully exported ${timelogsData.length} records for date range: ${startDate} to ${endDate}`
+    );
   } else {
     // Fallback: CSV with .csv extension
     const csv = [headers.join(",")]
@@ -910,12 +939,48 @@ async function exportReport(format) {
     a.href = url;
     a.download = `timelogs-report-${
       new Date().toISOString().split("T")[0]
-    }.csv`;
+    }${dateRangeText}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+
+    // Show success message
+    showToast(
+      `Successfully exported ${timelogsData.length} records for date range: ${startDate} to ${endDate} (CSV format)`
+    );
     alert("Excel export module not found. Exported as CSV instead.");
+  }
+}
+
+// Add this function near your other export/report functions
+async function exportReportExcel() {
+  if (!timelogsData || timelogsData.length === 0) {
+    alert("No report to export. Please load data first.");
+    return;
+  }
+  const rows = timelogsData.map((log) => [
+    log.vehicle?.vehicleName || "",
+    log.timeIn ? new Date(log.timeIn).toLocaleString() : "",
+    log.timeOut ? new Date(log.timeOut).toLocaleString() : "",
+  ]);
+  const startDate = document.getElementById("start-date").value;
+  const endDate = document.getElementById("end-date").value;
+  try {
+    const result = await window
+      .require("electron")
+      .ipcRenderer.invoke("export-timelogs-excel", {
+        rows,
+        startDate,
+        endDate,
+      });
+    if (result.success) {
+      showToast("Excel exported with colored headers!");
+    } else {
+      alert("Export failed: " + result.message);
+    }
+  } catch (err) {
+    alert("Export failed: " + err.message);
   }
 }
 
@@ -940,9 +1005,22 @@ function formatStatLabel(key) {
 }
 
 // Vehicle management functions
-function editVehicle(vehicleId) {
-  // TODO: Implement vehicle editing
-  alert(`Edit vehicle ${vehicleId} - Functionality coming soon`);
+async function editVehicle(vehicleId) {
+  try {
+    // Get vehicle details
+    const vehicles = await vehicleTracker.getAllVehiclesWithStats();
+    const vehicle = vehicles.find((v) => v.id === vehicleId);
+
+    if (!vehicle) {
+      alert("Vehicle not found");
+      return;
+    }
+
+    showEditVehicleModal(vehicle);
+  } catch (error) {
+    console.error("Error loading vehicle for editing:", error);
+    alert("Error loading vehicle details: " + error.message);
+  }
 }
 
 function deleteVehicle(vehicleId) {
@@ -1144,29 +1222,66 @@ function showTagManagementModal(vehicle, allTags) {
       <div class="material-modal-body">
         <div class="tag-management-section">
           <h3>Current Tags</h3>
-          <div class="current-tags">
-            ${
-              currentTags.length > 0
-                ? currentTags
-                    .map(
-                      (tag) => `
-                <div class="tag-item">
+          <div class="current-tags-container" style="
+            max-height: 280px;
+            overflow-y: auto;
+            border: 1px solid #e1e5e9;
+            border-radius: 8px;
+            padding: 16px;
+            background-color: #f8f9fa;
+            margin-bottom: 24px;
+          ">
+            <div class="current-tags" style="
+              display: flex;
+              flex-direction: column;
+              gap: 8px;
+            ">
+              ${
+                currentTags.length > 0
+                  ? currentTags
+                      .map(
+                        (tag) => `
+                <div class="tag-item" style="
+                  display: flex;
+                  align-items: center;
+                  justify-content: space-between;
+                  padding: 8px 12px;
+                  background: white;
+                  border-radius: 6px;
+                  border: 1px solid #dee2e6;
+                  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                ">
                   <span class="tag-badge ${
                     tag.tagType?.toLowerCase() || "default"
-                  }">
+                  }" style="
+                    font-size: 12px;
+                    padding: 4px 8px;
+                    border-radius: 4px;
+                    font-weight: 500;
+                  ">
                     ${tag.tagType || "Unknown"} - ${tag.epc}
                   </span>
                   <button class="remove-tag-btn" onclick="removeTagFromVehicle(${
                     vehicle.id
-                  }, '${tag.epc}')">
+                  }, '${tag.epc}')" style="
+                    background: #dc3545;
+                    color: white;
+                    border: none;
+                    border-radius: 4px;
+                    padding: 4px 8px;
+                    cursor: pointer;
+                    font-size: 12px;
+                    transition: background-color 0.2s;
+                  " onmouseover="this.style.backgroundColor='#c82333'" onmouseout="this.style.backgroundColor='#dc3545'">
                     <i class="fas fa-times"></i>
                   </button>
                 </div>
               `
-                    )
-                    .join("")
-                : "<p>No tags assigned to this vehicle.</p>"
-            }
+                      )
+                      .join("")
+                  : "<p style='text-align: center; color: #6c757d; font-style: italic; margin: 20px 0;'>No tags assigned to this vehicle.</p>"
+              }
+            </div>
           </div>
         </div>
         <div class="tag-management-section">
@@ -1360,6 +1475,113 @@ function showAddVehicleModal() {
 
 window.showAddVehicleModal = showAddVehicleModal;
 window.showAddUserModal = showAddUserModal;
+
+function showEditVehicleModal(vehicle) {
+  console.log("showEditVehicleModal called for vehicle:", vehicle);
+  const modal = document.createElement("div");
+  modal.className = "modal";
+  modal.style.display = "flex";
+
+  modal.innerHTML = `
+    <div class="modal-content material-modal">
+      <div class="modal-header material-modal-header">
+        <span class="modal-title">Edit Vehicle - ${
+          vehicle.plateNo || vehicle.vehicleName
+        }</span>
+        <button class="modal-close-btn" type="button" aria-label="Close" onclick="this.closest('.modal').remove()">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <form id="edit-vehicle-form" class="material-modal-body">
+        <div class="material-form-grid">
+          <div class="form-group">
+            <label for="edit-vehicle-plate">Plate Number</label>
+            <input type="text" id="edit-vehicle-plate" required placeholder="Enter plate number" value="${
+              vehicle.plateNo || ""
+            }">
+          </div>
+          <div class="form-group">
+            <label for="edit-vehicle-name">Vehicle Name</label>
+            <input type="text" id="edit-vehicle-name" required placeholder="Enter vehicle name" value="${
+              vehicle.vehicleName || ""
+            }">
+          </div>
+        </div>
+        <div class="rfid-tags-section">
+          <h4>Current RFID Tags</h4>
+          <div class="current-rfid-tags">
+            ${
+              vehicle.rfidTags && vehicle.rfidTags.length > 0
+                ? vehicle.rfidTags
+                    .map(
+                      (tag) => `
+                    <div class="tag-item">
+                      <span class="tag-badge ${
+                        tag.tagType?.toLowerCase() || "default"
+                      }">
+                        ${tag.tagType || "Unknown"} - ${tag.epc}
+                      </span>
+                    </div>
+                  `
+                    )
+                    .join("")
+                : "<p>No RFID tags assigned to this vehicle.</p>"
+            }
+          </div>
+          <p class="tag-note">
+            <i class="fas fa-info-circle"></i>
+            RFID tags can be managed separately using the "Manage RFID Tags" button.
+          </p>
+        </div>
+        <div class="modal-footer material-modal-footer">
+          <button type="submit" class="btn-primary">Update Vehicle</button>
+          <button type="button" class="cancel-btn" onclick="this.closest('.modal').remove()">Cancel</button>
+        </div>
+      </form>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  // Add form submit handler
+  const editVehicleForm = modal.querySelector("#edit-vehicle-form");
+  if (editVehicleForm) {
+    editVehicleForm.addEventListener("submit", async function (e) {
+      e.preventDefault();
+      const plateNo = document
+        .getElementById("edit-vehicle-plate")
+        .value.trim();
+      const vehicleName = document
+        .getElementById("edit-vehicle-name")
+        .value.trim();
+
+      if (!plateNo || !vehicleName) {
+        alert("Please fill in all required fields");
+        return;
+      }
+
+      try {
+        const result = await vehicleTracker.updateVehicle(vehicle.id, {
+          plateNo,
+          vehicleName,
+        });
+
+        if (result.status === "updated") {
+          showToast("Vehicle updated successfully!");
+          loadVehiclesData(); // Refresh the table
+          modal.remove();
+        } else {
+          alert(
+            "Error updating vehicle: " + (result.message || "Unknown error")
+          );
+        }
+      } catch (error) {
+        console.error("Error updating vehicle:", error);
+        alert("Error updating vehicle: " + error.message);
+      }
+    });
+  }
+}
 
 // Add this function to script.js
 function showDbUrlEditorModal() {

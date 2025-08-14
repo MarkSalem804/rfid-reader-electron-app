@@ -618,6 +618,18 @@ body {
   opacity: 0.6;
 }
 
+/* Align export button with date inputs when in filter-group */
+.filter-group .export-btn {
+  margin-top: 28px; /* Align with the bottom of date inputs */
+  height: 42px; /* Match the height of date inputs */
+}
+
+/* Align generate button with date inputs when in filter-group */
+.filter-group .generate-btn {
+  margin-top: 28px; /* Align with the bottom of date inputs */
+  height: 42px; /* Match the height of date inputs */
+}
+
 .report-content {
   min-height: 400px;
 }
@@ -1121,6 +1133,16 @@ body {
   .export-btn {
     width: 100%;
     justify-content: center;
+  }
+
+  /* Reset margin-top for mobile when export button is in filter-group */
+  .filter-group .export-btn {
+    margin-top: 0;
+  }
+
+  /* Reset margin-top for mobile when generate button is in filter-group */
+  .filter-group .generate-btn {
+    margin-top: 0;
   }
 
   .summary-stats {
@@ -1830,13 +1852,14 @@ body {
   /* padding: 6px 8px; */
   border-bottom: 2px solid #e0e0e0;
   border-right: none;
-  text-align: center;
+  text-align: left;
 }
 
 .vehicles-table th,
 .vehicles-table td,
 .users-table th,
 .users-table td {
+  padding: 16px 12px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1864,4 +1887,69 @@ body {
 #db-port:focus,
 #db-name:focus {
   border: 1.5px solid #3498db;
+}
+
+/* RFID Tags Section in Edit Modal */
+.rfid-tags-section {
+  margin-top: 24px;
+  padding: 20px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.rfid-tags-section h4 {
+  margin-bottom: 16px;
+  color: #333;
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.current-rfid-tags {
+  margin-bottom: 16px;
+}
+
+.current-rfid-tags .tag-item {
+  display: inline-block;
+  margin: 4px 8px 4px 0;
+}
+
+.current-rfid-tags .tag-badge {
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #fff;
+  background: #6c757d;
+  border: none;
+  cursor: default;
+}
+
+.current-rfid-tags .tag-badge.easytrip {
+  background: #28a745;
+}
+
+.current-rfid-tags .tag-badge.easysweep {
+  background: #17a2b8;
+}
+
+.current-rfid-tags .tag-badge.custom {
+  background: #6f42c1;
+}
+
+.current-rfid-tags .tag-badge.default {
+  background: #6c757d;
+}
+
+.tag-note {
+  margin: 0;
+  color: #6c757d;
+  font-size: 0.9rem;
+  font-style: italic;
+}
+
+.tag-note i {
+  margin-right: 6px;
+  color: #17a2b8;
 }
